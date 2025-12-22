@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getRecipeBySlug } from '@/lib/recipes';
 
 export default async function RecipeDetailPage({ params }: { params: any }) {
@@ -63,14 +64,16 @@ export default async function RecipeDetailPage({ params }: { params: any }) {
             <div
               className={`aspect-square bg-gradient-to-br ${getRecipeGradient(
                 recipe.difficulty
-              )} rounded-xl flex items-center justify-center overflow-hidden`}
+              )} rounded-xl flex items-center justify-center overflow-hidden relative`}
             >
               {recipe.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={recipe.imageUrl}
                   alt={recipe.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
+                  priority
                 />
               ) : (
                 <svg

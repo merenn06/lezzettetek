@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
@@ -140,13 +141,15 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Left Column: Product Image */}
             <div className="flex items-center justify-center">
-              <div className="w-full aspect-square bg-gradient-to-br from-green-200 to-green-400 rounded-xl shadow-md flex items-center justify-center overflow-hidden">
+              <div className="w-full aspect-square bg-gradient-to-br from-green-200 to-green-400 rounded-xl shadow-md flex items-center justify-center overflow-hidden relative">
                 {product.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={product.image_url}
                     alt={product.name}
-                    className="h-full w-full object-cover"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover"
+                    priority
                   />
                 ) : (
                   <p className="text-white text-sm font-medium opacity-90">

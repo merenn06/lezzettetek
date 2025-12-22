@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
@@ -138,13 +139,15 @@ export default function Urunlerimiz() {
                       className="flex flex-col flex-1 cursor-pointer"
                     >
                       {/* Product Image */}
-                      <div className={`aspect-square bg-gradient-to-br ${style.gradient} flex items-center justify-center`}>
+                      <div className={`aspect-square bg-gradient-to-br ${style.gradient} flex items-center justify-center relative overflow-hidden`}>
                         {product.image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={product.image_url}
                             alt={product.name}
-                            className="h-full w-full object-cover"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                            className="object-cover"
+                            loading="lazy"
                           />
                         ) : (
                           <svg className={`w-24 h-24 ${style.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

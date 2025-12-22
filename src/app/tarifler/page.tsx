@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { getRecipes } from '@/lib/recipes';
 
 export default async function Tarifler() {
@@ -57,14 +58,16 @@ export default async function Tarifler() {
                 <div
                   className={`aspect-video bg-gradient-to-br ${getRecipeGradient(
                     recipe.difficulty
-                  )} flex items-center justify-center overflow-hidden`}
+                  )} flex items-center justify-center overflow-hidden relative`}
                 >
                   {recipe.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={recipe.imageUrl}
                       alt={recipe.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <svg
