@@ -48,33 +48,16 @@ export default function Urunlerimiz() {
     fetchProducts();
   }, []);
 
-  const categories = useMemo(() => {
-    const uniqueCategories = Array.from(
-      new Set(
-        products
-          .map((product) => product.category)
-          .filter((category): category is string => Boolean(category))
-      )
-    );
-
-    return [
+  const categories = useMemo(
+    () => [
       { id: 'all', label: 'Tümü' },
-      ...uniqueCategories.map((id) => ({
-        id,
-        label: CATEGORY_LABELS[id] ?? id,
-      })),
-    ];
-  }, [products]);
+    ],
+    []
+  );
 
-  const filteredProducts =
-    activeCategory === 'all'
-      ? products
-      : products.filter((product) => product.category === activeCategory);
+  const filteredProducts = products;
 
-  const getProductStyle = (category?: string | null) => {
-    if (!category) return CATEGORY_STYLES.default;
-    return CATEGORY_STYLES[category] ?? CATEGORY_STYLES.default;
-  };
+  const getProductStyle = () => CATEGORY_STYLES.default;
 
   const formatPrice = (price: number) =>
     price.toLocaleString('tr-TR', {
@@ -141,7 +124,7 @@ export default function Urunlerimiz() {
           {!loading && !error && filteredProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filteredProducts.map((product) => {
-                const style = getProductStyle(product.category);
+                const style = getProductStyle();
                 const hasPrice = typeof product.price === 'number';
 
                 return (
@@ -182,9 +165,6 @@ export default function Urunlerimiz() {
                         )}
                         <p className="text-gray-600 mb-3 leading-relaxed text-sm line-clamp-2">
                           {product.description}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Stok: {product.stock}
                         </p>
                       </div>
                     </Link>

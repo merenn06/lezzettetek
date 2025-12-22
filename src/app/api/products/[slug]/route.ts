@@ -10,7 +10,7 @@ const supabase = supabaseUrl && supabaseServiceKey
 
 export async function GET(
   _request: Request,
-  context: { params: { slug: string } } | { params: Promise<{ slug: string }> }
+  context: any
 ) {
   try {
     if (!supabase) {

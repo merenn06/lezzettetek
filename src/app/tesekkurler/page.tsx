@@ -1,10 +1,6 @@
 import Link from 'next/link';
 
-interface PageProps {
-  searchParams: Promise<{ orderId?: string }>;
-}
-
-export default async function TesekkurlerPage({ searchParams }: PageProps) {
+export default async function TesekkurlerPage({ searchParams }: { searchParams: Promise<{ orderId?: string }> }) {
   const params = await searchParams;
   const orderId = params?.orderId;
 

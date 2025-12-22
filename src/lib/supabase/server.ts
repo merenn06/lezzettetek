@@ -8,14 +8,15 @@ export function createSupabaseServerClient() {
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
-        return cookies().get(name)?.value;
+        const cookieStore = cookies() as any;
+        return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: any) {
-        const cookieStore = cookies();
+        const cookieStore = cookies() as any;
         cookieStore.set({ name, value, ...options });
       },
       remove(name: string, options: any) {
-        const cookieStore = cookies();
+        const cookieStore = cookies() as any;
         cookieStore.set({ name, value: "", ...options, maxAge: 0 });
       },
     },

@@ -140,7 +140,7 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Left Column: Product Image */}
             <div className="flex items-center justify-center">
-              <div className={`w-full aspect-square bg-gradient-to-br ${getProductGradient(product.category)} rounded-xl shadow-md flex items-center justify-center overflow-hidden`}>
+              <div className="w-full aspect-square bg-gradient-to-br from-green-200 to-green-400 rounded-xl shadow-md flex items-center justify-center overflow-hidden">
                 {product.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -158,14 +158,6 @@ export default function ProductDetailPage() {
 
             {/* Right Column: Product Info */}
             <div className="flex flex-col">
-              {/* Category Badge */}
-              {product.category && (
-                <div className="mb-4">
-                  <span className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${getCategoryBadgeStyle(product.category)}`}>
-                    {product.category}
-                  </span>
-                </div>
-              )}
 
               {/* Product Title */}
               <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4">

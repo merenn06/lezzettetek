@@ -124,14 +124,12 @@ function getPaymentMethodLabel(method: string): string {
   return methodMap[method] || method;
 }
 
-type PageProps = {
-  params: {
-    id: string;
-  };
+type Props = {
+  params: Promise<{ id: string }>;
 };
 
-export default async function AdminSiparisDetayPage({ params }: PageProps) {
-  const { id: orderId } = params;
+export default async function AdminSiparisDetayPage({ params }: Props) {
+  const { id: orderId } = await params;
 
   let order: Order | null = null;
   let orderItems: OrderItem[] = [];
@@ -146,7 +144,7 @@ export default async function AdminSiparisDetayPage({ params }: PageProps) {
             <div className="bg-white rounded-xl shadow-md p-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-4">Sipariş Bulunamadı</h1>
               <p className="text-gray-600 mb-6">
-                Belirtilen ID'ye sahip bir sipariş bulunamadı.
+                Belirtilen ID&apos;ye sahip bir sipariş bulunamadı.
               </p>
               <Link
                 href="/admin/siparisler"
@@ -178,7 +176,7 @@ export default async function AdminSiparisDetayPage({ params }: PageProps) {
     );
   }
 
-  const statusBadge = getStatusBadge(order.status);
+  const statusBadge = getStatusBadge(order!.status);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -201,12 +199,12 @@ export default async function AdminSiparisDetayPage({ params }: PageProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Sipariş ID</h3>
-              <p className="text-gray-900 font-mono text-sm">{order.id}</p>
+              <p className="text-gray-900 font-mono text-sm">{order!.id}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Sipariş Tarihi</h3>
-              <p className="text-gray-900">{formatDate(order.created_at)}</p>
+              <p className="text-gray-900">{formatDate(order!.created_at)}</p>
             </div>
 
             <div>
@@ -215,58 +213,58 @@ export default async function AdminSiparisDetayPage({ params }: PageProps) {
                 <span className={`px-3 py-1 rounded text-sm font-semibold ${statusBadge.className}`}>
                   {statusBadge.label}
                 </span>
-                <OrderStatusEditor orderId={order.id} initialStatus={order.status ?? 'yeni'} />
+                <OrderStatusEditor orderId={order!.id} initialStatus={order!.status ?? 'yeni'} />
               </div>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Ödeme Yöntemi</h3>
-              <p className="text-gray-900">{getPaymentMethodLabel(order.payment_method)}</p>
+              <p className="text-gray-900">{getPaymentMethodLabel(order!.payment_method)}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Müşteri Adı</h3>
-              <p className="text-gray-900">{order.customer_name}</p>
+              <p className="text-gray-900">{order!.customer_name}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Telefon</h3>
-              <p className="text-gray-900">{order.phone}</p>
+              <p className="text-gray-900">{order!.phone}</p>
             </div>
 
-            {order.email && (
+            {order!.email && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-500 mb-2">E-posta</h3>
-                <p className="text-gray-900">{order.email}</p>
+                <p className="text-gray-900">{order!.email}</p>
               </div>
             )}
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Adres</h3>
-              <p className="text-gray-900">{order.address}</p>
+              <p className="text-gray-900">{order!.address}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">İl</h3>
-              <p className="text-gray-900">{order.city}</p>
+              <p className="text-gray-900">{order!.city}</p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">İlçe</h3>
-              <p className="text-gray-900">{order.district}</p>
+              <p className="text-gray-900">{order!.district}</p>
             </div>
 
-            {order.note && (
+            {order!.note && (
               <div className="md:col-span-2">
                 <h3 className="text-sm font-semibold text-gray-500 mb-2">Not</h3>
-                <p className="text-gray-900 whitespace-pre-wrap">{order.note}</p>
+                <p className="text-gray-900 whitespace-pre-wrap">{order!.note}</p>
               </div>
             )}
 
             <div className="md:col-span-2 pt-4 border-t border-gray-200">
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Toplam Tutar</h3>
               <p className="text-3xl font-bold text-green-700">
-                {formatPrice(order.total_price)} ₺
+                {formatPrice(order!.total_price)} ₺
               </p>
             </div>
           </div>
@@ -315,7 +313,7 @@ export default async function AdminSiparisDetayPage({ params }: PageProps) {
                       Toplam:
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-xl text-green-700">
-                      {formatPrice(order.total_price)} ₺
+                      {formatPrice(order!.total_price)} ₺
                     </td>
                   </tr>
                 </tfoot>

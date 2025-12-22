@@ -6,7 +6,7 @@ const ALLOWED_STATUSES = ['yeni', 'hazirlaniyor', 'kargoya_verildi', 'tamamlandi
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } } | { params: Promise<{ id: string }> }
+  context: any
 ) {
   try {
     if (!supabase) {

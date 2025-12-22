@@ -10,7 +10,7 @@ const supabase = supabaseUrl && supabaseServiceKey
 
 export async function GET(
   _request: Request,
-  context: { params: { id: string } } | { params: Promise<{ id: string }> }
+  context: any
 ) {
   try {
     if (!supabase) {
@@ -59,7 +59,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: { id: string } } | { params: Promise<{ id: string }> }
+  context: any
 ) {
   try {
     if (!supabase) {
@@ -150,7 +150,7 @@ export async function PUT(
 
 export async function DELETE(
   _request: Request,
-  context: { params: { id: string } } | { params: Promise<{ id: string }> }
+  context: any
 ) {
   try {
     if (!supabase) {

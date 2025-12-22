@@ -2,11 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getRecipeBySlug } from '@/lib/recipes';
 
-export default async function RecipeDetailPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function RecipeDetailPage({ params }: { params: any }) {
   const { slug } = params;
   const recipe = await getRecipeBySlug(slug);
 

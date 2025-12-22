@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Product } from '@/types/product';
 
 // Slugify function
@@ -450,9 +451,11 @@ export default function AdminUrunlerPage() {
                     <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4">
                         {product.image_url ? (
-                          <img
+                          <Image
                             src={product.image_url}
                             alt={product.name}
+                            width={64}
+                            height={64}
                             className="w-16 h-16 object-cover rounded"
                           />
                         ) : (

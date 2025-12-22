@@ -205,9 +205,7 @@ export default function MiniCart() {
                         </div>
                       ) : (
                         <div
-                          className={`w-16 h-16 bg-gradient-to-br ${getProductGradient(
-                            item.product.category
-                          )} rounded-lg flex-shrink-0 flex items-center justify-center`}
+                          className="w-16 h-16 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex-shrink-0 flex items-center justify-center"
                         >
                           <svg
                             className="w-8 h-8 text-white opacity-80"

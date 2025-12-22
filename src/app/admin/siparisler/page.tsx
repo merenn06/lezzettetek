@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { Order } from '@/types/orders';
 
-async function getOrders(): Promise<Order[]> {
+async function getOrders(): Promise<Partial<Order>[]> {
   if (!supabase) {
     throw new Error('Supabase client başlatılamadı.');
   }
@@ -18,7 +18,7 @@ async function getOrders(): Promise<Order[]> {
     throw new Error(`Siparişler yüklenirken hata oluştu: ${error.message}`);
   }
 
-  return data || [];
+  return (data || []) as Partial<Order>[];
 }
 
 function formatDate(dateString: string): string {
@@ -67,7 +67,7 @@ export default async function AdminSiparislerPage() {
   let error: string | null = null;
 
   try {
-    orders = await getOrders();
+    orders = (await getOrders()) as unknown as Order[];
   } catch (err) {
     error = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.';
   }
