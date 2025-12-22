@@ -1,0 +1,51 @@
+import type { Metadata } from "next";
+import { Playfair_Display, Inter } from "next/font/google";
+import "./globals.css";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { CartProvider } from "@/contexts/CartContext";
+import { FlyToCartProvider } from "@/contexts/FlyToCartContext";
+import MiniCart from "@/components/MiniCart";
+import FlyToCartAnimation from "@/components/FlyToCartAnimation";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Lezzette Tek",
+  description: "Lezzette Tek - Doğal ve Taze Ürünler",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="tr" className={`${playfair.variable} ${inter.variable}`}>
+      <body className="flex flex-col min-h-screen font-sans">
+        <CartProvider>
+          <FlyToCartProvider>
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+            <MiniCart />
+            <FlyToCartAnimation />
+          </FlyToCartProvider>
+        </CartProvider>
+      </body>
+    </html>
+  );
+}
+
