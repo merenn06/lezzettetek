@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 export default function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,7 +53,7 @@ export default function Header() {
               />
             </Link>
 
-            {/* Navigation */}
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-3 lg:gap-5 text-sm">
               {links.map((link) => (
                 <Link
@@ -68,7 +69,63 @@ export default function Header() {
                 </Link>
               ))}
             </nav>
+
+            {/* Mobile Hamburger */}
+            <button
+              type="button"
+              className="md:hidden inline-flex items-center justify-center rounded-full p-2 text-green-700 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+              aria-label="Menüyü aç/kapat"
+              onClick={() => setMobileOpen((prev) => !prev)}
+            >
+              {mobileOpen ? (
+                // X icon
+                <svg
+                  className="h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                // Hamburger icon
+                <svg
+                  className="h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
+
+          {/* Mobile Navigation */}
+          {mobileOpen && (
+            <nav className="md:hidden mt-3 border-t border-green-100 pt-3">
+              <div className="flex flex-col gap-2">
+                {links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors ${
+                      isActive(link.href)
+                        ? "bg-green-700 text-white"
+                        : "text-gray-800 hover:bg-green-50 hover:text-green-800"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          )}
         </div>
       </div>
     </header>

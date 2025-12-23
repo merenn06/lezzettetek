@@ -15,6 +15,14 @@ export type Order = {
   payment_method: PaymentMethod;
   status: OrderStatus;
   total_price: number;
+  // Optional shipping fields (populated once shipment is created)
+  shipping_carrier?: string | null;
+  shipping_tracking_number?: string | null;
+  shipping_payment_type?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
+  shipping_label_url?: string | null;
+  shipping_status?: string | null;
 };
 
 export type OrderItem = {

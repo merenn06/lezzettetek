@@ -214,6 +214,8 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
                   {statusBadge.label}
                 </span>
                 <OrderStatusEditor orderId={order!.id} initialStatus={order!.status ?? 'yeni'} />
+                {/* TODO: Kargo entegrasyonu tamamlandığında bu buton aktif edilecek */}
+                {/* <YurticiShipButton orderId={order!.id} existingTracking={order!.shipping_tracking_number} /> */}
               </div>
             </div>
 
