@@ -103,7 +103,7 @@ export default function MiniCart() {
 
   return (
     <>
-      {/* Cart Icon Button - Always visible */}
+      {/* Cart Icon Button - Mobile only (desktop header için ayrı ikon eklenecek) */}
       <button
         id="cart-icon"
         data-cart-trigger
@@ -111,7 +111,7 @@ export default function MiniCart() {
         onMouseEnter={() => setIsHover(true)}
         onMouseLeave={() => setIsHover(false)}
         style={isMobile ? { opacity: buttonOpacity } : undefined}
-        className="fixed right-4 top-20 md:top-4 z-40 bg-green-700 text-white p-3 rounded-full shadow-lg hover:bg-green-800 transition-colors flex items-center justify-center"
+        className="fixed right-4 top-20 z-40 bg-green-700 text-white p-3 rounded-full shadow-lg hover:bg-green-800 transition-colors flex items-center justify-center md:hidden"
         aria-label="Sepet"
       >
         <svg

@@ -4,11 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useCart } from "@/contexts/CartContext";
 
 export default function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { toggleMiniCart, getTotalItems } = useCart();
+  const totalItems = getTotalItems();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,22 +56,51 @@ export default function Header() {
               />
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-3 lg:gap-5 text-sm">
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative px-3 pb-2 pt-1 border-b-2 border-transparent text-gray-700 transition-colors duration-150 ${
-                    isActive(link.href)
-                      ? "border-green-600 text-green-700"
-                      : "hover:text-green-700 hover:border-green-300"
-                  }`}
+            {/* Desktop Navigation + Cart */}
+            <div className="hidden md:flex items-center gap-4 lg:gap-6 text-sm">
+              <nav className="flex items-center gap-3 lg:gap-5">
+                {links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`relative px-3 pb-2 pt-1 border-b-2 border-transparent text-gray-700 transition-colors duration-150 ${
+                      isActive(link.href)
+                        ? "border-green-600 text-green-700"
+                        : "hover:text-green-700 hover:border-green-300"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Desktop Cart Button (triggers MiniCart) */}
+              <button
+                type="button"
+                onClick={toggleMiniCart}
+                className="relative inline-flex items-center justify-center rounded-full bg-green-700 text-white px-3 py-2 shadow-sm hover:bg-green-800 transition-colors"
+                aria-label="Sepeti aç"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                {totalItems > 0 && (
+                  <span className="ml-2 text-xs font-semibold">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+            </div>
 
             {/* Mobile Hamburger */}
             <button
