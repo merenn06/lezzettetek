@@ -33,7 +33,7 @@ export const TESLIMAT_VE_IADE_SARTLARI = `**TESLİMAT VE İADE ŞARTLARI**
 * İade onaylandığında ücret iadesi, ödeme yöntemine göre bankanıza bağlı olarak **1–10 iş günü** içinde hesabınıza yansıyabilir.
 
 **İletişim**
-E-posta: **[info@teklezzet.com](mailto:info@teklezzet.com)**`;
+E-posta: [info@teklezzet.com](mailto:info@teklezzet.com)`;
 
 export const GIZLILIK_SOZLESMESI = `**GİZLİLİK SÖZLEŞMESİ**
 
@@ -76,7 +76,7 @@ Veriler, ilgili mevzuatta öngörülen süreler boyunca veya işleme amacının 
 KVKK kapsamında; verilerinizin işlenip işlenmediğini öğrenme, düzeltme, silme, itiraz etme gibi haklara sahipsiniz. Talepleriniz için bize e-posta ile ulaşabilirsiniz.
 
 **İletişim**
-E-posta: **[info@teklezzet.com](mailto:info@teklezzet.com)**`;
+E-posta: [info@teklezzet.com](mailto:info@teklezzet.com)`;
 
 export const ON_BILGILENDIRME_VE_MESAFELI_SOZLESME = `**MESAFELİ SATIŞ SÖZLEŞMESİ**
 
@@ -118,19 +118,19 @@ Tüketici işlemlerinden doğabilecek uyuşmazlıklarda, alıcının yerleşim y
 Alıcı, site üzerinden siparişi onaylayarak işbu sözleşme hükümlerini kabul etmiş sayılır.
 
 **İletişim**
-E-posta: **[info@teklezzet.com](mailto:info@teklezzet.com)**`;
+E-posta: [info@teklezzet.com](mailto:info@teklezzet.com)`;
 
 export const KVKK_AYDINLATMA_METNI = `KİŞİSEL VERİLERİN KORUNMASI AYDINLATMA METNİ (KVKK)
 
 Bu Aydınlatma Metni, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, veri sorumlusu sıfatıyla FS TARIM ÜRÜN. – Ferhat Çelik tarafından hazırlanmıştır.
 
-**1. Veri Sorumlusu**
+1. Veri Sorumlusu
 
 Unvan: FS TARIM ÜRÜN. – Ferhat Çelik
 Marka: Tek Lezzet / Lezzette Tek
-E-posta: info@teklezzet.com
+E-posta: [info@teklezzet.com](mailto:info@teklezzet.com)
 
-**2. İşlenen Kişisel Veriler**
+2. İşlenen Kişisel Veriler
 
 Web sitemiz üzerinden sunulan hizmetler kapsamında aşağıdaki kişisel veriler işlenebilmektedir:
 
@@ -146,7 +146,7 @@ Sipariş ve işlem bilgileri
 
 (Kredi/banka kartı bilgileri tarafımızca saklanmaz)
 
-**3. Kişisel Verilerin İşlenme Amaçları**
+3. Kişisel Verilerin İşlenme Amaçları
 
 Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:
 
@@ -160,7 +160,7 @@ Müşteri destek ve iletişim süreçlerinin yürütülmesi
 
 Yasal yükümlülüklerin yerine getirilmesi
 
-**4. Kişisel Verilerin Aktarılması**
+4. Kişisel Verilerin Aktarılması
 
 Kişisel verileriniz, yukarıda belirtilen amaçlarla sınırlı olmak üzere;
 
@@ -172,7 +172,7 @@ Yetkili kamu kurum ve kuruluşlarına (yasal zorunluluklar kapsamında)
 
 aktarılabilmektedir.
 
-**5. Kişisel Verilerin Toplanma Yöntemi ve Hukuki Sebebi**
+5. Kişisel Verilerin Toplanma Yöntemi ve Hukuki Sebebi
 
 Kişisel verileriniz;
 
@@ -194,7 +194,7 @@ Meşru menfaatler
 
 Açık rıza (gerektiği durumlarda)
 
-**6. KVKK Kapsamındaki Haklarınız**
+6. KVKK Kapsamındaki Haklarınız
 
 KVKK'nın 11. maddesi uyarınca veri sahipleri olarak:
 
@@ -214,11 +214,11 @@ Otomatik sistemler ile analiz edilmesi sonucu aleyhinize bir sonucun ortaya çı
 
 haklarına sahipsiniz.
 
-**7. Başvuru Yolu**
+7. Başvuru Yolu
 
 KVKK kapsamındaki taleplerinizi, yazılı olarak veya e-posta yoluyla bize iletebilirsiniz:
 
-📧 info@teklezzet.com
+📧 [info@teklezzet.com](mailto:info@teklezzet.com)
 
 Başvurularınız, mevzuata uygun olarak en geç 30 gün içinde sonuçlandırılacaktır.`;
 

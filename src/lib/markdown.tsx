@@ -77,26 +77,19 @@ function renderInlineMarkdown(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
   let currentIndex = 0;
 
+  // [text](url) pattern - önce linkleri bul (daha spesifik)
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  
   // **bold** pattern
   const boldRegex = /\*\*([^*]+)\*\*/g;
   let lastIndex = 0;
   let match;
 
-  // [text](url) pattern
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-
-  // Önce linkleri bul
+  // Önce linkleri bul (daha spesifik olduğu için önce kontrol et)
   const allMatches: Array<{ type: 'bold' | 'link'; start: number; end: number; content: string; url?: string }> = [];
 
-  while ((match = boldRegex.exec(text)) !== null) {
-    allMatches.push({
-      type: 'bold',
-      start: match.index,
-      end: match.index + match[0].length,
-      content: match[1],
-    });
-  }
-
+  // Link regex'i reset et
+  linkRegex.lastIndex = 0;
   while ((match = linkRegex.exec(text)) !== null) {
     allMatches.push({
       type: 'link',
@@ -105,6 +98,30 @@ function renderInlineMarkdown(text: string): React.ReactNode {
       content: match[1],
       url: match[2],
     });
+  }
+
+  // Bold regex'i reset et
+  boldRegex.lastIndex = 0;
+  while ((match = boldRegex.exec(text)) !== null) {
+    // Link ile çakışmayan bold'ları ekle
+    const isOverlapping = allMatches.some(
+      (linkMatch) =>
+        linkMatch.type === 'link' &&
+        ((match.index >= linkMatch.start && match.index < linkMatch.end) ||
+          (match.index + match[0].length > linkMatch.start &&
+            match.index + match[0].length <= linkMatch.end) ||
+          (match.index < linkMatch.start &&
+            match.index + match[0].length > linkMatch.end))
+    );
+    
+    if (!isOverlapping) {
+      allMatches.push({
+        type: 'bold',
+        start: match.index,
+        end: match.index + match[0].length,
+        content: match[1],
+      });
+    }
   }
 
   // Sırala
