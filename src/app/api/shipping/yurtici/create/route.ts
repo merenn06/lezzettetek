@@ -168,21 +168,42 @@ export async function POST(req: Request) {
     // Debug: log raw response
     console.log("[yurtici] createShipment raw:", JSON.stringify(result, null, 2));
 
-    // Parse response according to Yurtiçi documentation
-    // Response structure: { ShippingOrderResultVO: { outFlag, outResult, jobId }, shippingOrderDetailVO[] }
-    const resultVO = result.ShippingOrderResultVO || result;
-    const outFlag = resultVO.outFlag;
+    // createShipment çağrısından sonra gelen "result" için robust parse yap.
+    // SOAP response bazen farklı wrapper'larla gelir.
+    const raw = result;
 
-    // Handle shippingOrderDetailVO (can be object or array)
-    let details: any[] = [];
-    if (Array.isArray(result.shippingOrderDetailVO)) {
-      details = result.shippingOrderDetailVO;
-    } else if (result.shippingOrderDetailVO && typeof result.shippingOrderDetailVO === "object") {
-      details = [result.shippingOrderDetailVO];
+    // 1) ShippingOrderResultVO'yu farklı wrapper ihtimallerinden yakala
+    const vo =
+      raw?.ShippingOrderResultVO ??
+      raw?.createShipmentReturn?.ShippingOrderResultVO ??
+      raw?.createShipmentResponse?.ShippingOrderResultVO ??
+      raw?.createShipmentResult?.ShippingOrderResultVO ??
+      raw?.return?.ShippingOrderResultVO ??
+      raw?.result?.ShippingOrderResultVO;
+
+    if (!vo) {
+      console.error("[yurtici] Missing ShippingOrderResultVO:", raw);
+      return NextResponse.json(
+        { ok: false, error: "Yurtiçi yanıtı çözümlenemedi (ShippingOrderResultVO yok)" },
+        { status: 502 }
+      );
     }
 
+    // 2) Detayı her formda normalize et (array / object / nested)
+    const detailRaw =
+      vo?.shippingOrderDetailVO ??
+      vo?.shippingOrderDetailVo ??
+      vo?.shippingOrderDetailVos ??
+      vo?.shippingOrderDetailVO?.shippingOrderDetailVO; // bazı wsdl'lerde nested gelir
+
+    const details = Array.isArray(detailRaw)
+      ? detailRaw
+      : detailRaw
+        ? [detailRaw]
+        : [];
+
     if (details.length === 0) {
-      console.error("[yurtici] No shipping order details in response:", result);
+      console.error("[yurtici] No shipping order details in response:", vo);
       return NextResponse.json(
         { ok: false, error: "Yurtiçi yanıtında sipariş detayı bulunamadı" },
         { status: 502 }
@@ -190,81 +211,67 @@ export async function POST(req: Request) {
     }
 
     const detail = details[0];
-    const detailErrCode = detail.errCode;
-    const detailErrMessage = detail.errMessage || "";
 
-    // Check for idempotent success: outFlag === "1" but errCode === 60020 and errMessage contains "sistemde mevcuttur"
-    const isIdempotentSuccess =
-      outFlag === "1" &&
-      detailErrCode === 60020 &&
-      detailErrMessage.toLowerCase().includes("sistemde mevcuttur");
+    // 3) Success / idempotent success (60020) handling
+    const outFlag = String(vo.outFlag ?? "");
+    const outResult = String(vo.outResult ?? "");
+    const errCode = Number(detail.errCode ?? 0);
+    const errMessage = String(detail.errMessage ?? "");
 
-    // Success if outFlag === "0" OR idempotent success
-    if (outFlag === "0" || isIdempotentSuccess) {
-      // Extract JOB_ID from errMessage if present
-      let shippingJobId: string | undefined;
-      if (detailErrMessage) {
-        const jobIdMatch = detailErrMessage.match(/(\d+)\s*talep nolu/i);
-        if (jobIdMatch && jobIdMatch[1]) {
-          shippingJobId = jobIdMatch[1];
-        }
-      }
+    // success koşulu: outFlag === "0"
+    // idempotent koşulu: errCode === 60020 veya mesajda "sistemde mevcuttur"
+    const reused =
+      errCode === 60020 || /sistemde\s+mevcuttur/i.test(errMessage);
 
-      // Use detail.cargoKey as trackingNumber
-      const trackingNumber = detail.cargoKey || cargoKey;
+    const success = outFlag === "0" || reused;
 
-      // Update order with shipment info
-      const updateData: any = {
-        status: "shipped",
-        shipping_carrier: "yurtici",
-        shipping_payment_type: "GONDERICI_ODEMELI",
-        shipping_tracking_number: trackingNumber,
-        shipped_at: new Date().toISOString(),
-        shipping_status: "created",
-      };
+    if (!success) {
+      const msg = `${outResult}${errCode ? ` (errCode:${errCode})` : ""}${errMessage ? ` - ${errMessage}` : ""}`;
+      return NextResponse.json({ ok: false, error: `Yurtiçi hata: ${msg}` }, { status: 400 });
+    }
 
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update(updateData)
-        .eq("id", orderId);
+    // 4) tracking/cargoKey
+    const trackingNumber = String(detail.cargoKey || cargoKey);
 
-      if (updateError) {
-        console.error("[yurtici] Failed to update order with shipment info:", updateError);
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Kargo oluşturuldu ancak sipariş güncellemesi başarısız oldu",
-            trackingNumber,
-            cargoKey: trackingNumber,
-            ...(shippingJobId && { shipping_job_id: shippingJobId }),
-          },
-          { status: 500 }
-        );
-      }
+    // 5) jobId (bazı response'larda 0 gelebilir; mesajdan yakala)
+    let jobId = Number(vo.jobId ?? 0);
+    if (!jobId) {
+      const m = errMessage.match(/(\d+)\s*talep\s*nolu/i);
+      if (m?.[1]) jobId = Number(m[1]);
+    }
 
+    // 6) DB update: shipping_tracking_number yaz
+    const updateData: any = {
+      status: "shipped",
+      shipping_carrier: "yurtici",
+      shipping_payment_type: "GONDERICI_ODEMELI",
+      shipping_tracking_number: trackingNumber,
+      shipped_at: new Date().toISOString(),
+      shipping_status: "created",
+    };
+
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update(updateData)
+      .eq("id", orderId);
+
+    if (updateError) {
+      console.error("[yurtici] Failed to update order with shipment info:", updateError);
       return NextResponse.json(
         {
-          ok: true,
+          ok: false,
+          error: "Kargo oluşturuldu ancak sipariş güncellemesi başarısız oldu",
           trackingNumber,
           cargoKey: trackingNumber,
-          reused: isIdempotentSuccess,
-          ...(shippingJobId && { shipping_job_id: shippingJobId }),
+          ...(jobId ? { shipping_job_id: jobId } : {}),
         },
-        { status: 200 }
+        { status: 500 }
       );
     }
 
-    // Error case: build detailed error message
-    const errorParts: string[] = [];
-    if (resultVO.outResult) errorParts.push(resultVO.outResult);
-    if (detailErrCode !== undefined) errorParts.push(`errCode: ${detailErrCode}`);
-    if (detailErrMessage) errorParts.push(detailErrMessage);
-    const errorMsg = errorParts.length > 0 ? errorParts.join(" - ") : "Yurtiçi hata oluştu";
-
-    console.error("[yurtici] createShipment failed:", result);
     return NextResponse.json(
-      { ok: false, error: errorMsg },
-      { status: 502 }
+      { ok: true, trackingNumber, cargoKey: trackingNumber, reused, shipping_job_id: jobId || null },
+      { status: 200 }
     );
   } catch (err: any) {
     console.error("[yurtici] Unexpected error:", err);
