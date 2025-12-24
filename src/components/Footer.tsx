@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -104,11 +105,75 @@ Lezzette tek nokta olma yaklaşımımız, tüm üretim anlayışımızın temeli
           </div>
         </div>
 
+        {/* Payment Methods */}
+        <div className="border-t border-gray-200 pt-6 pb-4">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-sm text-gray-600 font-medium">Güvenli Ödeme Yöntemleri</p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex items-center justify-center h-8 w-auto">
+                <Image
+                  src="/iyzico_ile_ode_colored.svg"
+                  alt="iyzico ile öde"
+                  width={120}
+                  height={32}
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
+              <div className="flex items-center justify-center h-8 w-auto">
+                <Image
+                  src="/visa-10.svg"
+                  alt="Visa"
+                  width={60}
+                  height={32}
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
+              <div className="flex items-center justify-center h-8 w-auto">
+                <Image
+                  src="/ma_symbol.svg"
+                  alt="Mastercard"
+                  width={60}
+                  height={32}
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Bar */}
         <div className="border-t border-gray-200 pt-6">
-          <p className="text-center text-sm text-gray-600">
-            © 2025 Lezzette Tek. Tüm hakları saklıdır.
-          </p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-600">
+              © 2025 Lezzette Tek. Tüm hakları saklıdır.
+            </p>
+            <nav className="flex flex-wrap justify-center gap-4 text-sm">
+              <Link 
+                href="/teslimat-ve-iade-sartlari" 
+                className="text-gray-600 hover:text-green-700 transition-colors"
+              >
+                Teslimat ve İade Şartları
+              </Link>
+              <Link 
+                href="/gizlilik-sozlesmesi" 
+                className="text-gray-600 hover:text-green-700 transition-colors"
+              >
+                Gizlilik Sözleşmesi
+              </Link>
+              <Link 
+                href="/mesafeli-satis-sozlesmesi" 
+                className="text-gray-600 hover:text-green-700 transition-colors"
+              >
+                Mesafeli Satış Sözleşmesi
+              </Link>
+              <Link 
+                href="/kvkk" 
+                className="text-gray-600 hover:text-green-700 transition-colors"
+              >
+                KVKK
+              </Link>
+            </nav>
+          </div>
         </div>
       </div>
     </footer>
