@@ -165,13 +165,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // Debug: log raw response
+    console.log("[yurtici] createShipment raw:", JSON.stringify(result, null, 2));
+
     // Parse response according to Yurtiçi documentation
-    // Response structure: { outFlag, outResult, jobId, shippingOrderDetailVO[] }
-    if (result.outFlag !== "0") {
-      const errorMsg = result.outResult || "Bilinmeyen hata";
+    // Response structure: { ShippingOrderResultVO: { outFlag, outResult, jobId }, shippingOrderDetailVO[] }
+    const resultVO = result.ShippingOrderResultVO || result;
+    if (resultVO.outFlag !== "0") {
+      const errorParts: string[] = [];
+      if (resultVO.outResult) errorParts.push(resultVO.outResult);
+      const errorMsg = errorParts.length > 0 ? errorParts.join(" - ") : "Yurtiçi hata: outFlag != 0";
       console.error("[yurtici] createShipment failed:", result);
       return NextResponse.json(
-        { ok: false, error: `Yurtiçi hata: ${errorMsg}` },
+        { ok: false, error: errorMsg },
         { status: 502 }
       );
     }
@@ -187,16 +193,20 @@ export async function POST(req: Request) {
     }
 
     const detail = details[0];
-    if (detail.errCode !== 0) {
-      const errorMsg = detail.errMessage || "Bilinmeyen hata";
+    // errCode 0 veya undefined ise hata sayma
+    if (detail.errCode !== undefined && detail.errCode !== 0) {
+      const errorParts: string[] = [];
+      if (detail.errCode !== undefined) errorParts.push(`errCode: ${detail.errCode}`);
+      if (detail.errMessage) errorParts.push(detail.errMessage);
+      const errorMsg = errorParts.length > 0 ? errorParts.join(" - ") : "Yurtiçi hata: errCode != 0";
       console.error("[yurtici] Shipping order detail error:", detail);
       return NextResponse.json(
-        { ok: false, error: `Yurtiçi hata: ${detail.errCode} - ${errorMsg}` },
+        { ok: false, error: errorMsg },
         { status: 502 }
       );
     }
 
-    // Success: use cargoKey as tracking number
+    // Success: use cargoKey as tracking number if not found in response
     const trackingNumber = detail.cargoKey || cargoKey;
 
     // Update order with shipment info
