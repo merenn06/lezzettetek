@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
-import soap from "soap";
+import * as soap from "soap";
 import { createHash } from "crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
