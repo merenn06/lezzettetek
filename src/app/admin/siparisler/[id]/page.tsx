@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Order, OrderItem } from '@/types/orders';
 import { notFound } from 'next/navigation';
 import OrderStatusEditor from '@/components/admin/OrderStatusEditor';
+import YurticiShipButton from '@/components/admin/YurticiShipButton';
 
 async function getOrder(orderId: string): Promise<Order | null> {
   if (!supabase) {
@@ -214,8 +215,13 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
                   {statusBadge.label}
                 </span>
                 <OrderStatusEditor orderId={order!.id} initialStatus={order!.status ?? 'yeni'} />
-                {/* TODO: Kargo entegrasyonu tamamlandığında bu buton aktif edilecek */}
-                {/* <YurticiShipButton orderId={order!.id} existingTracking={order!.shipping_tracking_number} /> */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-500 mb-2">Yurtiçi Kargo</h4>
+                  <YurticiShipButton 
+                    orderId={order!.id} 
+                    existingTracking={order!.shipping_tracking_number} 
+                  />
+                </div>
               </div>
             </div>
 
