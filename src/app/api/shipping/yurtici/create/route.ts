@@ -167,6 +167,7 @@ export async function POST(req: Request) {
 
     // Debug: log raw response
     console.log("[yurtici] createShipment raw:", JSON.stringify(result, null, 2));
+    console.log("[yurtici] createShipment raw keys:", Object.keys(result || {}));
 
     // createShipment çağrısından sonra gelen "result" için robust parse yap.
     // SOAP response bazen farklı wrapper'larla gelir.
@@ -179,7 +180,8 @@ export async function POST(req: Request) {
       raw?.createShipmentResponse?.ShippingOrderResultVO ??
       raw?.createShipmentResult?.ShippingOrderResultVO ??
       raw?.return?.ShippingOrderResultVO ??
-      raw?.result?.ShippingOrderResultVO;
+      raw?.result?.ShippingOrderResultVO ??
+      raw; // Fallback: use raw itself if it has outFlag
 
     if (!vo) {
       console.error("[yurtici] Missing ShippingOrderResultVO:", raw);
@@ -189,7 +191,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2) Detayı her formda normalize et (array / object / nested)
+    console.log("[yurtici] vo keys:", Object.keys(vo || {}));
+    console.log("[yurtici] vo.outFlag:", vo.outFlag, "vo.outResult:", vo.outResult);
+
+    // 2) Extract basic fields from vo
+    const outFlag = String(vo.outFlag ?? "");
+    const outResult = String(vo.outResult ?? "");
+
+    // 3) Detayı her formda normalize et (array / object / nested) - NOT MANDATORY
     const detailRaw =
       vo?.shippingOrderDetailVO ??
       vo?.shippingOrderDetailVo ??
@@ -202,40 +211,33 @@ export async function POST(req: Request) {
         ? [detailRaw]
         : [];
 
-    if (details.length === 0) {
-      console.error("[yurtici] No shipping order details in response:", vo);
-      return NextResponse.json(
-        { ok: false, error: "Yurtiçi yanıtında sipariş detayı bulunamadı" },
-        { status: 502 }
-      );
-    }
+    const detail = details.length > 0 ? details[0] : null;
+    const errCode = detail ? Number(detail.errCode ?? 0) : 0;
+    const errMessage = detail ? String(detail.errMessage ?? "") : String(outResult ?? "");
 
-    const detail = details[0];
+    console.log("[yurtici] detail:", detail ? JSON.stringify(detail, null, 2) : "null");
+    console.log("[yurtici] errCode:", errCode, "errMessage:", errMessage);
 
-    // 3) Success / idempotent success (60020) handling
-    const outFlag = String(vo.outFlag ?? "");
-    const outResult = String(vo.outResult ?? "");
-    const errCode = Number(detail.errCode ?? 0);
-    const errMessage = String(detail.errMessage ?? "");
-
-    // success koşulu: outFlag === "0"
-    // idempotent koşulu: errCode === 60020 veya mesajda "sistemde mevcuttur"
-    const reused =
-      errCode === 60020 || /sistemde\s+mevcuttur/i.test(errMessage);
-
-    const success = outFlag === "0" || reused;
+    // 4) Success / idempotent success (60020) handling
+    // success koşulu: outFlag === "0" OR errCode === 60020 OR errMessage includes "sistemde mevcuttur"
+    const isIdempotent = errCode === 60020 || /sistemde\s+mevcuttur/i.test(errMessage);
+    // reused: idempotent durumlar veya detail yoksa (zaten sistemde var demektir)
+    const reused = isIdempotent || (outFlag === "0" && !detail);
+    // success: outFlag === "0" VEYA idempotent durum
+    const success = outFlag === "0" || isIdempotent;
 
     if (!success) {
       const msg = `${outResult}${errCode ? ` (errCode:${errCode})` : ""}${errMessage ? ` - ${errMessage}` : ""}`;
+      console.error("[yurtici] createShipment failed - outFlag:", outFlag, "errCode:", errCode, "errMessage:", errMessage);
       return NextResponse.json({ ok: false, error: `Yurtiçi hata: ${msg}` }, { status: 400 });
     }
 
-    // 4) tracking/cargoKey
-    const trackingNumber = String(detail.cargoKey || cargoKey);
+    // 5) tracking/cargoKey - fallback to cargoKey if detail missing
+    const trackingNumber = String(detail?.cargoKey || cargoKey);
 
-    // 5) jobId (bazı response'larda 0 gelebilir; mesajdan yakala)
+    // 6) jobId extraction - prefer vo.jobId if > 0, else extract from errMessage
     let jobId = Number(vo.jobId ?? 0);
-    if (!jobId) {
+    if (jobId <= 0 && errMessage) {
       const m = errMessage.match(/(\d+)\s*talep\s*nolu/i);
       if (m?.[1]) jobId = Number(m[1]);
     }
@@ -263,14 +265,21 @@ export async function POST(req: Request) {
           error: "Kargo oluşturuldu ancak sipariş güncellemesi başarısız oldu",
           trackingNumber,
           cargoKey: trackingNumber,
-          ...(jobId ? { shipping_job_id: jobId } : {}),
+          reused,
+          shipping_job_id: jobId > 0 ? jobId : null,
         },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { ok: true, trackingNumber, cargoKey: trackingNumber, reused, shipping_job_id: jobId || null },
+      {
+        ok: true,
+        trackingNumber,
+        cargoKey: trackingNumber,
+        reused,
+        shipping_job_id: jobId > 0 ? jobId : null,
+      },
       { status: 200 }
     );
   } catch (err: any) {
