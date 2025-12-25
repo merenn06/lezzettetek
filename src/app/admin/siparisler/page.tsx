@@ -2,6 +2,10 @@ import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { Order } from '@/types/orders';
 
+// Disable caching for admin orders page to always show latest data
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 async function getOrders(): Promise<Partial<Order>[]> {
   if (!supabase) {
     throw new Error('Supabase client başlatılamadı.');
