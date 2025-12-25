@@ -59,20 +59,20 @@ export default function Header() {
             {/* Desktop Navigation + Cart */}
             <div className="hidden md:flex items-center gap-4 lg:gap-6 text-sm">
               <nav className="flex items-center gap-3 lg:gap-5">
-                {links.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`relative px-3 pb-2 pt-1 border-b-2 border-transparent text-gray-700 transition-colors duration-150 ${
-                      isActive(link.href)
-                        ? "border-green-600 text-green-700"
-                        : "hover:text-green-700 hover:border-green-300"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`relative px-3 pb-2 pt-1 border-b-2 border-transparent text-gray-700 transition-colors duration-150 ${
+                    isActive(link.href)
+                      ? "border-green-600 text-green-700"
+                      : "hover:text-green-700 hover:border-green-300"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
 
               {/* Desktop Cart Button (triggers MiniCart) */}
               <button

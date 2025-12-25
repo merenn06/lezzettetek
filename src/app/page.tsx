@@ -1,10 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import HeroSlider from '@/components/HeroSlider';
-import { getRecipes } from '@/lib/recipes';
+import PartnersLogos from '@/components/PartnersLogos';
+import { getRecipes, type RecipeListItem } from '@/lib/recipes';
 
 export default async function Home() {
-  const recipes = (await getRecipes()).slice(0, 3);
+  let recipes: RecipeListItem[] = [];
+  try {
+    recipes = (await getRecipes()).slice(0, 3);
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+  }
 
   return (
     <div className="w-full">
@@ -47,6 +53,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Partners Logos Section */}
+      <PartnersLogos />
 
       {/* Featured Products Section */}
       <section className="py-24 px-4 bg-white">
@@ -254,4 +263,3 @@ export default async function Home() {
     </div>
   );
 }
-
