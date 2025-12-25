@@ -41,13 +41,15 @@ export async function createOrderWithItems(
 
   const total_price = orderItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
-  // Insert order
+  // Insert order - write email to both email and customer_email for backward compatibility
+  const customerEmail = orderData.email || null;
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
       customer_name: orderData.customer_name,
       phone: orderData.phone,
-      email: orderData.email || null,
+      email: customerEmail,
+      customer_email: customerEmail, // Also write to customer_email for consistency
       address: orderData.address,
       city: orderData.city,
       district: orderData.district,

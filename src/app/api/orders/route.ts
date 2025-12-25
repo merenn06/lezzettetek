@@ -4,6 +4,7 @@ import {
   type CreateOrderInput,
   type OrderItemInput,
 } from "@/lib/orders";
+import { sendOrderConfirmationEmail } from "@/lib/mailer";
 
 type CheckoutRequestBody = {
   customer_name: string;
@@ -113,6 +114,27 @@ export async function POST(req: Request) {
     };
 
     const { orderId } = await createOrderWithItems(orderData, mappedItems);
+
+    // Send confirmation email if email is provided
+    if (email) {
+      try {
+        const totalPrice = mappedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+        await sendOrderConfirmationEmail({
+          to: email,
+          orderId,
+          customerName: customer_name,
+          totalPrice,
+          items: mappedItems.map((item) => ({
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+          })),
+        });
+      } catch (mailErr) {
+        // Log email error but don't fail the order creation
+        console.error("[order-confirmation-mail] failed:", mailErr);
+      }
+    }
 
     return NextResponse.json(
       {

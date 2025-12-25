@@ -37,10 +37,10 @@ export async function PATCH(
       );
     }
 
-    // First, fetch order to get email and customer_name
+    // First, fetch order to get email, customer_email and customer_name
     const { data: orderData, error: fetchError } = await supabase
       .from('orders')
-      .select('id, email, customer_name')
+      .select('id, email, customer_email, customer_name')
       .eq('id', id)
       .single();
 
@@ -100,11 +100,13 @@ export async function PATCH(
     }
 
     // Send email notification if order has an email address
-    if (orderData.email) {
-      console.log('[status-mail] to:', orderData.email, 'orderId:', id, 'status:', data.status);
+    // Use fallback: customer_email ?? email
+    const to = (orderData.customer_email ?? orderData.email) || null;
+    if (to) {
+      console.log('[status-mail] to:', to, 'orderId:', id, 'status:', data.status);
       try {
         await sendOrderStatusEmail({
-          to: orderData.email,
+          to,
           orderId: id,
           customerName: orderData.customer_name || 'Müşteri',
           status: data.status,
@@ -114,7 +116,7 @@ export async function PATCH(
         console.error('[status-mail] failed:', mailErr);
       }
     } else {
-      console.log('[status-mail] skipped: no email for order', id);
+      console.log('[status-mail] skipped: no email for order', id, 'email:', orderData.email, 'customer_email:', orderData.customer_email);
     }
 
     return NextResponse.json(

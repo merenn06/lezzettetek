@@ -92,69 +92,69 @@ export default function Tarifler() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 {displayedRecipes.map((recipe) => (
-                  <div
-                    key={recipe.id}
-                    className="bg-gray-50 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    {/* Recipe Image */}
-                    <div
-                      className={`aspect-video bg-gradient-to-br ${getRecipeGradient(
-                        recipe.difficulty
+              <div
+                key={recipe.id}
+                className="bg-gray-50 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              >
+                {/* Recipe Image */}
+                <div
+                  className={`aspect-video bg-gradient-to-br ${getRecipeGradient(
+                    recipe.difficulty
                       )} flex items-center justify-center overflow-hidden relative`}
-                    >
-                      {recipe.imageUrl ? (
+                >
+                  {recipe.imageUrl ? (
                         <Image
-                          src={recipe.imageUrl}
-                          alt={recipe.title}
+                      src={recipe.imageUrl}
+                      alt={recipe.title}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover"
                           loading="lazy"
-                        />
-                      ) : (
-                        <svg
-                          className="w-16 h-16 text-white opacity-80"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
-                        </svg>
-                      )}
-                    </div>
+                    />
+                  ) : (
+                    <svg
+                      className="w-16 h-16 text-white opacity-80"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                      />
+                    </svg>
+                  )}
+                </div>
 
-                    {/* Recipe Info */}
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold mb-3 text-gray-900">
-                        {recipe.title}
-                      </h3>
-                      <p className="text-gray-600 mb-3 leading-relaxed">
-                        {recipe.shortDescription}
-                      </p>
-                      
-                      {/* Difficulty and Duration */}
-                      <p className="text-sm text-gray-500 mb-4">
-                        {getDifficultyLabel(recipe.difficulty)} • {recipe.durationMinutes} dk
-                      </p>
+                {/* Recipe Info */}
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-3 text-gray-900">
+                    {recipe.title}
+                  </h3>
+                  <p className="text-gray-600 mb-3 leading-relaxed">
+                    {recipe.shortDescription}
+                  </p>
+                  
+                  {/* Difficulty and Duration */}
+                  <p className="text-sm text-gray-500 mb-4">
+                    {getDifficultyLabel(recipe.difficulty)} • {recipe.durationMinutes} dk
+                  </p>
 
-                      {/* View Recipe Button */}
-                      <Link
-                        href={`/tarifler/${recipe.slug}`}
-                        className="w-full py-3 bg-green-700 text-white rounded-lg font-semibold hover:bg-green-800 transition-colors text-center block"
-                      >
-                        Tarifi Gör
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  {/* View Recipe Button */}
+                  <Link
+                    href={`/tarifler/${recipe.slug}`}
+                    className="w-full py-3 bg-green-700 text-white rounded-lg font-semibold hover:bg-green-800 transition-colors text-center block"
+                  >
+                    Tarifi Gör
+                  </Link>
+                </div>
               </div>
+            ))}
+          </div>
 
               {/* Load More Button */}
               {hasMore && (
