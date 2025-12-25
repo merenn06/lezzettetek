@@ -115,13 +115,38 @@ export async function POST(req: Request) {
       );
     }
 
+    // Debug: log raw response
+    console.log("[yurtici-cancel] cancelShipment raw:", JSON.stringify(result, null, 2));
+
     // Parse response (similar structure to createShipment)
-    if (result.outFlag !== "0") {
-      const errorMsg = result.outResult || "Bilinmeyen hata";
-      console.error("[yurtici-cancel] cancelShipment failed:", result);
+    // Handle different response wrappers
+    const raw = result;
+    const vo =
+      raw?.ShippingOrderResultVO ??
+      raw?.cancelShipmentReturn?.ShippingOrderResultVO ??
+      raw?.cancelShipmentResponse?.ShippingOrderResultVO ??
+      raw?.cancelShipmentResult?.ShippingOrderResultVO ??
+      raw?.return?.ShippingOrderResultVO ??
+      raw?.result?.ShippingOrderResultVO ??
+      raw;
+
+    if (!vo) {
+      console.error("[yurtici-cancel] Missing ShippingOrderResultVO:", raw);
+      return NextResponse.json(
+        { ok: false, error: "Yurtiçi yanıtı çözümlenemedi (ShippingOrderResultVO yok)" },
+        { status: 502 }
+      );
+    }
+
+    const outFlag = String(vo.outFlag ?? "");
+    const outResult = String(vo.outResult ?? "");
+
+    if (outFlag !== "0") {
+      const errorMsg = outResult || "Bilinmeyen hata";
+      console.error("[yurtici-cancel] cancelShipment failed - outFlag:", outFlag, "outResult:", outResult);
       return NextResponse.json(
         { ok: false, error: `Yurtiçi hata: ${errorMsg}` },
-        { status: 502 }
+        { status: 400 }
       );
     }
 
