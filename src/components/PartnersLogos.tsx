@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 
 const partners = [
@@ -23,14 +23,20 @@ const SPEED = 0.25;
 
 export default function PartnersLogos() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const isPausedRef = useRef<boolean>(false);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastInteractionTimeRef = useRef<number>(0);
+  const scrollPositionRef = useRef<number>(0);
+  const isVisibleRef = useRef<boolean>(true);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    const inner = innerRef.current;
+    const section = sectionRef.current;
+    if (!container || !inner) return;
 
     // Check for reduced motion preference
     let prefersReducedMotion = false;
@@ -47,9 +53,14 @@ export default function PartnersLogos() {
       return;
     }
 
+    // Get initial scroll width
+    const getScrollWidth = () => {
+      return inner.scrollWidth / 2; // Half because we duplicate the content
+    };
+
     // Animation loop
     const animate = () => {
-      if (!container) return;
+      if (!container || !inner) return;
 
       // Check if paused (user interaction or tab hidden)
       if (isPausedRef.current) {
@@ -63,21 +74,63 @@ export default function PartnersLogos() {
         return;
       }
 
+      // Check if section is visible
+      if (!isVisibleRef.current) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
       // Calculate max scroll position
-      const maxScroll = container.scrollWidth - container.clientWidth;
+      const maxScroll = getScrollWidth();
+
+      // Increment scroll position
+      scrollPositionRef.current += SPEED;
 
       // Check if we've reached the end (with small buffer)
-      if (container.scrollLeft >= maxScroll - 1) {
+      if (scrollPositionRef.current >= maxScroll - 1) {
         // Reset to start (seamless loop)
-        container.scrollLeft = 0;
-      } else {
-        // Increment scroll position
-        container.scrollLeft += SPEED;
+        scrollPositionRef.current = 0;
+      }
+
+      // Use scrollTo for better mobile compatibility
+      // Try scrollTo first, fallback to scrollLeft
+      try {
+        if (container.scrollTo) {
+          container.scrollTo({
+            left: scrollPositionRef.current,
+            behavior: 'auto',
+          });
+        } else {
+          container.scrollLeft = scrollPositionRef.current;
+        }
+      } catch (e) {
+        // Fallback to scrollLeft if scrollTo fails
+        container.scrollLeft = scrollPositionRef.current;
       }
 
       // Continue animation
       animationFrameRef.current = requestAnimationFrame(animate);
     };
+
+    // Intersection Observer for visibility
+    let observer: IntersectionObserver | null = null;
+    if (section && typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            isVisibleRef.current = entry.isIntersecting;
+          });
+        },
+        {
+          threshold: 0.1,
+          rootMargin: '50px',
+        }
+      );
+      observer.observe(section);
+    } else {
+      // Fallback: assume visible if IntersectionObserver is not available
+      isVisibleRef.current = true;
+    }
 
     // Start animation
     if (process.env.NODE_ENV === 'development') {
@@ -90,6 +143,9 @@ export default function PartnersLogos() {
       isPausedRef.current = true;
       lastInteractionTimeRef.current = Date.now();
 
+      // Sync scroll position when user interacts
+      scrollPositionRef.current = container.scrollLeft;
+
       // Clear existing timeout
       if (idleTimeoutRef.current) {
         clearTimeout(idleTimeoutRef.current);
@@ -101,11 +157,19 @@ export default function PartnersLogos() {
       }, 2000);
     };
 
+    // Handle scroll event to sync position
+    const handleScroll = () => {
+      if (isPausedRef.current) {
+        scrollPositionRef.current = container.scrollLeft;
+      }
+    };
+
     // Event listeners for user interaction
     container.addEventListener('mouseenter', handleUserInteraction);
     container.addEventListener('pointerdown', handleUserInteraction);
     container.addEventListener('touchstart', handleUserInteraction, { passive: true });
     container.addEventListener('wheel', handleUserInteraction, { passive: true });
+    container.addEventListener('scroll', handleScroll, { passive: true });
 
     // Cleanup
     return () => {
@@ -115,15 +179,19 @@ export default function PartnersLogos() {
       if (idleTimeoutRef.current) {
         clearTimeout(idleTimeoutRef.current);
       }
+      if (observer) {
+        observer.disconnect();
+      }
       container.removeEventListener('mouseenter', handleUserInteraction);
       container.removeEventListener('pointerdown', handleUserInteraction);
       container.removeEventListener('touchstart', handleUserInteraction);
       container.removeEventListener('wheel', handleUserInteraction);
+      container.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
   return (
-    <section className="w-full bg-gradient-to-b from-amber-50/50 to-white py-12 md:py-16">
+    <section ref={sectionRef} className="w-full bg-gradient-to-b from-amber-50/50 to-white py-12 md:py-16">
       <div className="container mx-auto px-4">
         <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-8 md:mb-12">
           Lezzetlerimizi Tercih Eden İş Ortaklarımız
@@ -141,10 +209,11 @@ export default function PartnersLogos() {
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollBehavior: 'auto',
+              willChange: 'scroll-position',
             }}
           >
             {/* Flex row container with logo items */}
-            <div className="flex gap-4 md:gap-6 px-4 md:px-8">
+            <div ref={innerRef} className="flex gap-4 md:gap-6 px-4 md:px-8">
               {/* First list (for seamless loop) */}
               <div className="flex gap-4 md:gap-6 flex-shrink-0">
                 {partners.map((partner, index) => (
