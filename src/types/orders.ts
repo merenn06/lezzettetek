@@ -1,6 +1,6 @@
-export type OrderStatus = 'yeni' | 'hazırlanıyor' | 'kargoda' | 'tamamlandı' | 'iptal';
+export type OrderStatus = 'yeni' | 'hazırlanıyor' | 'kargoda' | 'tamamlandı' | 'iptal' | 'pending_payment' | 'paid' | 'payment_failed';
 
-export type PaymentMethod = 'havale' | 'kapida';
+export type PaymentMethod = 'havale' | 'kapida' | 'iyzico';
 
 export type Order = {
   id: string;
@@ -23,6 +23,13 @@ export type Order = {
   delivered_at?: string | null;
   shipping_label_url?: string | null;
   shipping_status?: string | null;
+  // Optional payment fields (populated for iyzico payments)
+  payment_provider?: string | null;
+  payment_token?: string | null;
+  payment_status?: string | null;
+  paid_at?: string | null;
+  iyzico_payment_id?: string | null;
+  postal_code?: string | null;
 };
 
 export type OrderItem = {

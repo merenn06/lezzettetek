@@ -15,7 +15,7 @@ export type CreateOrderInput = {
   city: string;
   district: string;
   note?: string | null;
-  payment_method: 'havale' | 'kapida';
+  payment_method: 'havale' | 'kapida' | 'iyzico';
 };
 
 export async function createOrderWithItems(
@@ -43,6 +43,8 @@ export async function createOrderWithItems(
 
   // Insert order - write email to both email and customer_email for backward compatibility
   const customerEmail = orderData.email || null;
+  // Set status based on payment method
+  const orderStatus = orderData.payment_method === 'iyzico' ? 'pending_payment' : 'yeni';
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
@@ -55,7 +57,7 @@ export async function createOrderWithItems(
       district: orderData.district,
       note: orderData.note || null,
       payment_method: orderData.payment_method,
-      status: 'yeni',
+      status: orderStatus,
       total_price: total_price,
     })
     .select('id')

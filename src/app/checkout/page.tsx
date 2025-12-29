@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 // Shipping fee constant - can be easily changed
 const SHIPPING_FEE = 39.90;
+
+// Helper function to execute scripts from HTML content
+function executeScripts(container: HTMLElement) {
+  const scripts = container.querySelectorAll('script');
+  scripts.forEach((oldScript) => {
+    const newScript = document.createElement('script');
+    Array.from(oldScript.attributes).forEach((attr) => {
+      newScript.setAttribute(attr.name, attr.value);
+    });
+    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+    oldScript.parentNode?.replaceChild(newScript, oldScript);
+  });
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -15,6 +28,9 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showIyzicoForm, setShowIyzicoForm] = useState(false);
+  const [iyzicoFormContent, setIyzicoFormContent] = useState<string | null>(null);
+  const iyzicoContainerRef = useRef<HTMLDivElement>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -49,6 +65,14 @@ export default function CheckoutPage() {
   const subtotal = getTotalPrice();
   const shipping = SHIPPING_FEE;
   const total = subtotal + shipping;
+
+  // Render iyzico form content when available
+  useEffect(() => {
+    if (showIyzicoForm && iyzicoFormContent && iyzicoContainerRef.current) {
+      iyzicoContainerRef.current.innerHTML = iyzicoFormContent;
+      executeScripts(iyzicoContainerRef.current);
+    }
+  }, [showIyzicoForm, iyzicoFormContent]);
 
 
   const handleInputChange = (
@@ -130,7 +154,77 @@ export default function CheckoutPage() {
     setApiError(null);
     setSuccessMessage(null);
 
-    // Map payment method to API format
+    // Check if iyzico payment is selected
+    if (formData.paymentMethod === 'siteden-odeme') {
+      // iyzico payment flow
+      try {
+        // First, create order with pending_payment status
+        const orderData = {
+          customer_name: formData.fullName.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim() || null,
+          address: formData.addressLine.trim(),
+          city: formData.city.trim(),
+          district: formData.district.trim(),
+          note: formData.deliveryNote.trim() || null,
+          payment_method: 'iyzico',
+          items: items.map((item) => ({
+            product_id: item.product.id,
+            product_name: item.product.name,
+            unit_price: item.product.price || 0,
+            quantity: item.quantity,
+          })),
+        };
+
+        // Create order
+        const orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        const orderResult = await orderResponse.json();
+
+        if (!orderResponse.ok || !orderResult.success) {
+          throw new Error(orderResult.error || 'Sipariş oluşturulurken bir hata oluştu');
+        }
+
+        const orderId = orderResult.orderId;
+
+        // Initialize iyzico payment
+        const iyzicoResponse = await fetch('/api/payment/iyzico/initialize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ orderId }),
+        });
+
+        const iyzicoResult = await iyzicoResponse.json();
+
+        if (!iyzicoResponse.ok || !iyzicoResult.ok) {
+          throw new Error(iyzicoResult.error || 'Ödeme formu oluşturulurken bir hata oluştu');
+        }
+
+        // Show iyzico form
+        setIyzicoFormContent(iyzicoResult.checkoutFormContent);
+        setShowIyzicoForm(true);
+        setIsSubmitting(false);
+
+        // Scroll to form
+        setTimeout(() => {
+          iyzicoContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      } catch (error) {
+        setApiError(error instanceof Error ? error.message : 'Ödeme başlatılırken bir hata oluştu');
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // Regular payment flow (kapida-odeme)
     const paymentMethodMap: Record<string, 'havale' | 'kapida'> = {
       'kapida-odeme': 'kapida',
       'siteden-odeme': 'havale',
@@ -564,10 +658,10 @@ export default function CheckoutPage() {
                     />
                     <div className="flex-1">
                       <span className="font-medium text-gray-900">
-                        Siteden Ödeme (Kredi Kartı) – Çok Yakında
+                        Siteden Ödeme (Kredi Kartı)
                       </span>
                       <p className="text-sm text-gray-500 mt-1">
-                        Bu seçenek henüz aktif değil; şimdilik sadece kapıda ödeme ile devam edebilirsiniz.
+                        Güvenli ödeme ile kredi kartınızla ödeme yapabilirsiniz.
                       </p>
                     </div>
                   </label>
@@ -630,6 +724,18 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </form>
+
+            {/* iyzico Checkout Form */}
+            {showIyzicoForm && (
+              <div className="bg-white rounded-xl shadow-md p-6 mt-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Ödeme Formu</h2>
+                <div
+                  id="iyzipay-checkout-form"
+                  ref={iyzicoContainerRef}
+                  className="responsive"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

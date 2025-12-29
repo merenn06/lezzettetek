@@ -14,7 +14,7 @@ type CheckoutRequestBody = {
   city: string;
   district: string;
   note?: string | null;
-  payment_method: "havale" | "kapida";
+  payment_method: "havale" | "kapida" | "iyzico";
   items: Array<{
     product_id: string;
     product_name: string;
@@ -70,9 +70,9 @@ function validateRequest(body: any): asserts body is CheckoutRequestBody {
     }
   }
 
-  if (body.payment_method !== "havale" && body.payment_method !== "kapida") {
+  if (body.payment_method !== "havale" && body.payment_method !== "kapida" && body.payment_method !== "iyzico") {
     throw new Error(
-      "Geçersiz payment_method. Sadece 'havale' veya 'kapida' olabilir."
+      "Geçersiz payment_method. Sadece 'havale', 'kapida' veya 'iyzico' olabilir."
     );
   }
 }
