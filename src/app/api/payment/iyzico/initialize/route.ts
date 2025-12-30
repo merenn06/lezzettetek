@@ -1,17 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Iyzipay from 'iyzipay';
 import { supabase } from '@/lib/supabaseClient';
+const sb = supabase!;
 
-// Initialize iyzico client
-function getIyzipayClient() {
-  const apiKey = process.env.IYZI_API_KEY;
-  const secretKey = process.env.IYZI_SECRET_KEY;
-  const baseUrl = process.env.IYZI_BASE_URL || 'https://sandbox-api.iyzipay.com';
+export const runtime = 'nodejs';
+
+function getIyzipayClient(): any {
+  const apiKey = process.env.IYZI_API_KEY?.trim();
+  const secretKey = process.env.IYZI_SECRET_KEY?.trim();
+  const baseUrl = (process.env.IYZI_BASE_URL || 'https://sandbox-api.iyzipay.com').trim();
 
   if (!apiKey || !secretKey) {
+    console.error('[iyzico-initialize] Missing IYZI_API_KEY or IYZI_SECRET_KEY');
     throw new Error('IYZI_API_KEY ve IYZI_SECRET_KEY env değişkenleri tanımlı olmalıdır.');
   }
 
+  // Check if base URL and key type match
+  const isSandbox = baseUrl.includes('sandbox');
+  const isLive = baseUrl.includes('api.iyzipay.com') && !baseUrl.includes('sandbox');
+  
+  // Log API key presence (not the actual values for security)
+  console.log('[iyzico-initialize] API Key present:', !!apiKey, 'Length:', apiKey?.length);
+  console.log('[iyzico-initialize] Secret Key present:', !!secretKey, 'Length:', secretKey?.length);
+  console.log('[iyzico-initialize] Using iyzico base URL:', baseUrl);
+  console.log('[iyzico-initialize] Environment detected:', isSandbox ? 'SANDBOX' : isLive ? 'LIVE' : 'UNKNOWN');
+  
+  // Warn if URL and key type might be mismatched
+  if (isSandbox) {
+    console.log('[iyzico-initialize] ⚠️  SANDBOX ortamı kullanılıyor - Sandbox API key\'leri kullanıldığından emin olun!');
+  } else if (isLive) {
+    console.log('[iyzico-initialize] ⚠️  LIVE/PRODUCTION ortamı kullanılıyor - Production API key\'leri kullanıldığından emin olun!');
+  } else {
+    console.warn('[iyzico-initialize] ⚠️  UYARI: Base URL tanımlanamadı. Sandbox mı Live mı kontrol edin!');
+  }
+  
   return new Iyzipay({
     apiKey,
     secretKey,
@@ -19,112 +41,153 @@ function getIyzipayClient() {
   });
 }
 
-export async function POST(req: NextRequest) {
+function createCheckoutForm(iyzipay: any, request: any): Promise<any> {
+  return new Promise((resolve, reject) => {
+    iyzipay.checkoutFormInitialize.create(request, (err: any, result: any) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+  });
+}
+
+export async function POST(req: NextRequest): Promise<Response> {
   try {
+    console.log('[iyzico-initialize] Payment initialization request received');
     const body = await req.json();
-    const { orderId } = body;
+    const orderId = body?.orderId;
 
     if (!orderId || typeof orderId !== 'string') {
+      console.error('[iyzico-initialize] Invalid orderId:', orderId);
       return NextResponse.json(
         { ok: false, error: 'orderId gereklidir ve string olmalıdır.' },
         { status: 400 }
       );
     }
 
-    // Get order from Supabase
-    const { data: order, error: orderError } = await supabase
+    console.log('[iyzico-initialize] Processing order:', orderId);
+
+    if (!supabase) {
+      console.error('[iyzico-initialize] Supabase bağlantısı kurulamadı');
+      return NextResponse.json(
+        { ok: false, error: 'Supabase bağlantısı kurulamadı.' },
+        { status: 500 }
+      );
+    }
+
+    console.log('[iyzico-initialize] Fetching order from database');
+    const { data: order, error: orderError } = await sb
       .from('orders')
       .select('*')
       .eq('id', orderId)
       .single();
 
     if (orderError || !order) {
-      console.error('Order fetch error:', orderError);
+      console.error('[iyzico-initialize] Order fetch error:', orderError);
       return NextResponse.json(
         { ok: false, error: 'Sipariş bulunamadı.' },
         { status: 404 }
       );
     }
 
-    // Get order items
-    const { data: orderItems, error: itemsError } = await supabase
+    console.log('[iyzico-initialize] Order found:', order.id, 'Total price:', order.total_price);
+
+    const { data: orderItems, error: itemsError } = await sb
       .from('order_items')
       .select('*')
       .eq('order_id', orderId);
 
     if (itemsError || !orderItems || orderItems.length === 0) {
-      console.error('Order items fetch error:', itemsError);
+      console.error('[iyzico-initialize] Order items fetch error:', itemsError);
       return NextResponse.json(
         { ok: false, error: 'Sipariş ürünleri bulunamadı.' },
         { status: 404 }
       );
     }
 
-    // Calculate shipping fee (39.90 TL as per checkout page)
-    const SHIPPING_FEE = 39.90;
-    const subtotal = order.total_price || 0;
+    console.log('[iyzico-initialize] Order items found:', orderItems.length);
+
+    const SHIPPING_FEE = 39.9;
+    const subtotal = Number(order.total_price || 0);
     const totalPrice = subtotal + SHIPPING_FEE;
 
-    // Prepare iyzico request
-    const iyzipay = getIyzipayClient();
-    const callbackUrl = process.env.IYZI_CALLBACK_URL;
+    console.log('[iyzico-initialize] Price calculation - Subtotal:', subtotal, 'Shipping:', SHIPPING_FEE, 'Total:', totalPrice);
 
+    const callbackUrl = process.env.IYZI_CALLBACK_URL;
     if (!callbackUrl) {
+      console.error('[iyzico-initialize] IYZI_CALLBACK_URL env değişkeni tanımlı değil');
       return NextResponse.json(
         { ok: false, error: 'IYZI_CALLBACK_URL env değişkeni tanımlı olmalıdır.' },
         { status: 500 }
       );
     }
 
-    // Format phone number (remove spaces, dashes, etc.)
-    const phoneNumber = order.phone.replace(/\D/g, '');
+    console.log('[iyzico-initialize] Callback URL:', callbackUrl);
 
-    // Prepare buyer info
+    const phoneRaw = String(order.phone || '').replace(/\D/g, '');
+    const gsmNumber = phoneRaw
+      ? (phoneRaw.startsWith('90') ? `+${phoneRaw}` : `+90${phoneRaw}`)
+      : '+905350000000';
+
+    const customerName = String(order.customer_name || 'Müşteri');
+    const surname = customerName.split(' ').slice(-1)[0] || customerName;
+
+    // Format dates for iyzico: YYYY-MM-DD HH:mm:ss
+    const registrationDate = new Date(order.created_at || Date.now())
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+    const lastLoginDate = new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+
+    console.log('[iyzico-initialize] registrationDate formatted:', registrationDate);
+    console.log('[iyzico-initialize] lastLoginDate formatted:', lastLoginDate);
+
     const buyer = {
-      id: order.id.substring(0, 50), // iyzico max length
-      name: order.customer_name,
-      surname: order.customer_name.split(' ').slice(-1)[0] || order.customer_name,
-      gsmNumber: phoneNumber.startsWith('90') ? `+${phoneNumber}` : `+90${phoneNumber}`,
-      email: order.email || `${order.id}@temp.com`,
-      identityNumber: '11111111111', // Required by iyzico, use dummy for now
-      lastLoginDate: new Date().toISOString().split('T')[0],
-      registrationDate: new Date(order.created_at).toISOString().split('T')[0],
-      registrationAddress: order.address,
-      ip: '85.34.78.112', // Can be extracted from request headers if needed
-      city: order.city,
+      id: String(order.id).substring(0, 50),
+      name: customerName,
+      surname,
+      gsmNumber,
+      email: order.email || order.customer_email || `${order.id}@temp.local`,
+      identityNumber: '11111111111',
+      registrationAddress: order.address || '-',
+      ip:
+        req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        req.headers.get('x-real-ip') ||
+        '85.34.78.112',
+      city: order.city || 'Istanbul',
       country: 'Turkey',
       zipCode: order.postal_code || '34000',
+      registrationDate,
+      lastLoginDate,
     };
 
-    // Prepare shipping address
     const shippingAddress = {
-      contactName: order.customer_name,
-      city: order.city,
+      contactName: customerName,
+      city: order.city || 'Istanbul',
       country: 'Turkey',
-      address: order.address,
+      address: order.address || '-',
       zipCode: order.postal_code || '34000',
     };
 
-    // Prepare billing address (same as shipping for now)
     const billingAddress = {
-      contactName: order.customer_name,
-      city: order.city,
+      contactName: customerName,
+      city: order.city || 'Istanbul',
       country: 'Turkey',
-      address: order.address,
+      address: order.address || '-',
       zipCode: order.postal_code || '34000',
     };
 
-    // Prepare basket items
-    const basketItems = orderItems.map((item) => ({
-      id: item.product_id.substring(0, 50),
+    const basketItems = orderItems.map((item: any) => ({
+      id: String(item.product_id || item.id || 'item').substring(0, 50),
       name: item.product_name || 'Ürün',
       category1: 'Gıda',
       category2: 'Konserve',
       itemType: 'PHYSICAL',
-      price: ((item.unit_price || 0) * (item.quantity || 1)).toFixed(2),
+      price: ((Number(item.unit_price || 0)) * (Number(item.quantity || 1))).toFixed(2),
     }));
 
-    // Add shipping as a basket item
     if (SHIPPING_FEE > 0) {
       basketItems.push({
         id: 'shipping',
@@ -136,63 +199,93 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    console.log('[iyzico-initialize] Creating iyzico client');
+    const iyzipay = getIyzipayClient();
+
     const request = {
       locale: 'tr',
-      conversationId: orderId,
+      conversationId: orderId, // orderId burada kalacak
       price: totalPrice.toFixed(2),
       paidPrice: totalPrice.toFixed(2),
       currency: 'TRY',
       basketId: orderId,
       paymentGroup: 'PRODUCT',
-      callbackUrl: callbackUrl,
+      callbackUrl,
       enabledInstallments: [1, 2, 3, 6, 9, 12],
-      buyer: buyer,
-      shippingAddress: shippingAddress,
-      billingAddress: billingAddress,
-      basketItems: basketItems,
+      buyer,
+      shippingAddress,
+      billingAddress,
+      basketItems,
     };
 
-    // Note: iyzipay uses callbacks, so we need to wait for the response
-    // This is a limitation of the iyzipay SDK. We'll use a promise wrapper.
-    return new Promise((resolve) => {
-      iyzipay.checkoutFormInitialize.create(request, (err: any, result: any) => {
-        if (err) {
-          console.error('iyzico checkout form initialize error:', err);
-          resolve(
-            NextResponse.json(
-              { ok: false, error: 'Ödeme formu oluşturulurken hata oluştu.' },
-              { status: 500 }
-            )
-          );
-          return;
-        }
-
-        if (result.status === 'success') {
-          resolve(
-            NextResponse.json({
-              ok: true,
-              token: result.token,
-              checkoutFormContent: result.checkoutFormContent,
-              paymentPageUrl: result.paymentPageUrl,
-            })
-          );
-        } else {
-          console.error('iyzico error:', result.errorMessage);
-          resolve(
-            NextResponse.json(
-              { ok: false, error: result.errorMessage || 'Ödeme formu oluşturulamadı.' },
-              { status: 500 }
-            )
-          );
-        }
-      });
+    console.log('[iyzico-initialize] Sending request to iyzico, basket items:', basketItems.length);
+    console.log('[iyzico-initialize] Request details:', {
+      locale: request.locale,
+      conversationId: request.conversationId,
+      price: request.price,
+      paidPrice: request.paidPrice,
+      currency: request.currency,
+      basketId: request.basketId,
+      callbackUrl: request.callbackUrl,
+      buyerId: request.buyer.id,
+      buyerEmail: request.buyer.email,
+      basketItemsCount: request.basketItems.length,
     });
-  } catch (error: any) {
-    console.error('Initialize payment error:', error);
+    const result = await createCheckoutForm(iyzipay, request);
+
+    if (!result || result.status !== 'success') {
+      const errorMessage = result?.errorMessage || 'Ödeme formu oluşturulamadı';
+      const errorCode = result?.errorCode;
+      
+      // Check for credential mismatch error
+      if (errorCode === '1001' || errorMessage.includes('api bilgileri bulunamadı')) {
+        const baseUrl = (process.env.IYZI_BASE_URL || 'https://sandbox-api.iyzipay.com').trim();
+        const isSandbox = baseUrl.includes('sandbox');
+        
+        console.error('[iyzico-initialize] ❌ API BİLGİLERİ BULUNADI HATASI!');
+        console.error('[iyzico-initialize] Base URL:', baseUrl);
+        console.error('[iyzico-initialize] Ortam:', isSandbox ? 'SANDBOX' : 'LIVE');
+        console.error('[iyzico-initialize] ⚠️  UYARI: API key\'leriniz ortam ile uyumlu olmayabilir!');
+        console.error('[iyzico-initialize] ⚠️  Sandbox ortamı kullanıyorsanız SANDBOX API key\'leri kullanmalısınız.');
+        console.error('[iyzico-initialize] ⚠️  Live ortamı kullanıyorsanız PRODUCTION API key\'leri kullanmalısınız.');
+        console.error('[iyzico-initialize] Full result:', JSON.stringify(result));
+        
+        return NextResponse.json(
+          { 
+            ok: false, 
+            error: `API bilgileri bulunamadı. ${isSandbox ? 'Sandbox' : 'Live'} ortamı için doğru API key'lerini kullandığınızdan emin olun. İyzico panelinden API bilgilerinizi kontrol edin.`,
+            errorCode,
+            environment: isSandbox ? 'sandbox' : 'live',
+            result 
+          },
+          { status: 500 }
+        );
+      }
+      
+      console.error('[iyzico-initialize] iyzico initialize failed:', errorMessage, 'Full result:', JSON.stringify(result));
+      return NextResponse.json(
+        { ok: false, error: errorMessage, result },
+        { status: 500 }
+      );
+    }
+
+    console.log('[iyzico-initialize] Payment form created successfully, token:', result.token?.substring(0, 20) + '...');
     return NextResponse.json(
-      { ok: false, error: error.message || 'Bilinmeyen bir hata oluştu.' },
+      {
+        ok: true,
+        token: result.token,
+        checkoutFormContent: result.checkoutFormContent,
+        paymentPageUrl: result.paymentPageUrl,
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('[iyzico-initialize] Initialize payment error:', error);
+    const errorStack = error?.stack || undefined;
+    console.error('[iyzico-initialize] Error stack:', errorStack);
+    return NextResponse.json(
+      { ok: false, error: error?.message || 'Bilinmeyen bir hata oluştu.' },
       { status: 500 }
     );
   }
 }
-

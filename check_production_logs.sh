@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "Production log'larını kontrol etmek için:"
+echo ""
+echo "1. PM2 kullanıyorsanız:"
+echo "   pm2 logs | grep iyzico-callback"
+echo ""
+echo "2. Veya tüm log'ları görmek için:"
+echo "   pm2 logs --lines 200"
+echo ""
+echo "3. Production server'a SSH ile bağlanıp log'ları kontrol edin"

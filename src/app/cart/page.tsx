@@ -3,6 +3,9 @@
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 
+// Shipping fee constant - matches checkout page
+const SHIPPING_FEE = 39.90;
+
 export default function CartPage() {
   const { items, removeItem, clearCart, getTotalPrice } = useCart();
 
@@ -28,7 +31,9 @@ export default function CartPage() {
     }
   };
 
-  const totalPrice = getTotalPrice();
+  const subtotal = getTotalPrice();
+  const shipping = SHIPPING_FEE;
+  const total = subtotal + shipping;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -156,16 +161,18 @@ export default function CartPage() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-700">
                     <span>Ara Toplam:</span>
-                    <span className="font-semibold">{formatPrice(totalPrice)} ₺</span>
+                    <span className="font-semibold">{formatPrice(subtotal)} ₺</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
                     <span>Kargo:</span>
-                    <span className="font-semibold">Ücretsiz</span>
+                    <span className="font-semibold">
+                      {shipping > 0 ? `${formatPrice(shipping)} ₺` : 'Ücretsiz'}
+                    </span>
                   </div>
                   <div className="border-t border-gray-200 pt-4 flex justify-between">
                     <span className="text-lg font-bold text-gray-900">Toplam:</span>
                     <span className="text-2xl font-bold text-green-700">
-                      {formatPrice(totalPrice)} ₺
+                      {formatPrice(total)} ₺
                     </span>
                   </div>
                 </div>

@@ -24,3 +24,5 @@ ADD COLUMN IF NOT EXISTS postal_code text;
 -- Note: This assumes status is a text column. If it's an enum, you'll need to alter the enum type.
 -- For text columns, this is safe to run multiple times.
 
+
+

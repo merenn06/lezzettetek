@@ -12,6 +12,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // iyzipay paketini external olarak işaretle - filesystem erişimi için gerekli
+  serverExternalPackages: ['iyzipay'],
 };
 
 module.exports = nextConfig;

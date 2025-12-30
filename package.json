@@ -11,7 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.87.0",
-    "iyzipay": "^1.0.60",
+    "iyzipay": "^1.1.11",
     "next": "^15.0.0",
     "nodemailer": "^7.0.11",
     "pg": "^8.16.3",
