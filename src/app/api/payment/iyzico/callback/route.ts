@@ -1,58 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Iyzipay from 'iyzipay';
 import { supabase } from '@/lib/supabaseClient';
+import { retrieveCheckoutForm } from '@/lib/iyzico/client';
+import type { IyzicoRetrieveResult } from '@/lib/iyzico/types';
 
 const sb = supabase!;
 
 export const runtime = 'nodejs';
-
-interface IyzicoRetrieveResult {
-  status: string;
-  paymentStatus?: string;
-  conversationId?: string;
-  paymentId?: string;
-  paidPrice?: string;
-  errorMessage?: string;
-  errorCode?: string;
-}
-
-function getIyzipayClient(): any {
-  const apiKey = process.env.IYZI_API_KEY?.trim();
-  const secretKey = process.env.IYZI_SECRET_KEY?.trim();
-  const baseUrl = (process.env.IYZI_BASE_URL || 'https://sandbox-api.iyzipay.com').trim();
-
-  if (!apiKey || !secretKey) {
-    console.error('[iyzico-callback] Missing IYZI_API_KEY or IYZI_SECRET_KEY');
-    throw new Error('IYZI_API_KEY ve IYZI_SECRET_KEY env değişkenleri tanımlı olmalıdır.');
-  }
-
-  return new Iyzipay({
-    apiKey,
-    secretKey,
-    uri: baseUrl,
-  });
-}
-
-function retrieveCheckoutForm(token: string): Promise<IyzicoRetrieveResult> {
-  return new Promise<IyzicoRetrieveResult>((resolve, reject) => {
-    const iyzipay = getIyzipayClient();
-    const request = {
-      token: token,
-    };
-
-    iyzipay.checkoutForm.retrieve(request, (err: unknown, result: IyzicoRetrieveResult) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      if (result) {
-        resolve(result);
-      } else {
-        reject(new Error('No result from iyzico'));
-      }
-    });
-  });
-}
 
 async function extractToken(req: NextRequest): Promise<string | null> {
   // 1. Try query parameters first (most common for iyzico callbacks - GET requests)

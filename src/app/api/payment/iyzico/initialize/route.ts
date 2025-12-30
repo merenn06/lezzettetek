@@ -1,54 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Iyzipay from 'iyzipay';
 import { supabase } from '@/lib/supabaseClient';
+import { getIyzipayClient, createCheckoutForm, formatIyzicoDate } from '@/lib/iyzico/client';
+import type { IyzicoCheckoutFormRequest } from '@/lib/iyzico/types';
+
 const sb = supabase!;
 
 export const runtime = 'nodejs';
-
-function getIyzipayClient(): any {
-  const apiKey = process.env.IYZI_API_KEY?.trim();
-  const secretKey = process.env.IYZI_SECRET_KEY?.trim();
-  const baseUrl = (process.env.IYZI_BASE_URL || 'https://sandbox-api.iyzipay.com').trim();
-
-  if (!apiKey || !secretKey) {
-    console.error('[iyzico-initialize] Missing IYZI_API_KEY or IYZI_SECRET_KEY');
-    throw new Error('IYZI_API_KEY ve IYZI_SECRET_KEY env değişkenleri tanımlı olmalıdır.');
-  }
-
-  // Check if base URL and key type match
-  const isSandbox = baseUrl.includes('sandbox');
-  const isLive = baseUrl.includes('api.iyzipay.com') && !baseUrl.includes('sandbox');
-  
-  // Log API key presence (not the actual values for security)
-  console.log('[iyzico-initialize] API Key present:', !!apiKey, 'Length:', apiKey?.length);
-  console.log('[iyzico-initialize] Secret Key present:', !!secretKey, 'Length:', secretKey?.length);
-  console.log('[iyzico-initialize] Using iyzico base URL:', baseUrl);
-  console.log('[iyzico-initialize] Environment detected:', isSandbox ? 'SANDBOX' : isLive ? 'LIVE' : 'UNKNOWN');
-  
-  // Warn if URL and key type might be mismatched
-  if (isSandbox) {
-    console.log('[iyzico-initialize] ⚠️  SANDBOX ortamı kullanılıyor - Sandbox API key\'leri kullanıldığından emin olun!');
-  } else if (isLive) {
-    console.log('[iyzico-initialize] ⚠️  LIVE/PRODUCTION ortamı kullanılıyor - Production API key\'leri kullanıldığından emin olun!');
-  } else {
-    console.warn('[iyzico-initialize] ⚠️  UYARI: Base URL tanımlanamadı. Sandbox mı Live mı kontrol edin!');
-  }
-  
-  return new Iyzipay({
-    apiKey,
-    secretKey,
-    uri: baseUrl,
-  });
-}
-
-function createCheckoutForm(iyzipay: any, request: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    iyzipay.checkoutFormInitialize.create(request, (err: any, result: any) => {
-      if (err) return reject(err);
-      resolve(result);
-    });
-  });
-}
 
 export async function POST(req: NextRequest): Promise<Response> {
   try {
@@ -132,14 +89,8 @@ export async function POST(req: NextRequest): Promise<Response> {
     const surname = customerName.split(' ').slice(-1)[0] || customerName;
 
     // Format dates for iyzico: YYYY-MM-DD HH:mm:ss
-    const registrationDate = new Date(order.created_at || Date.now())
-      .toISOString()
-      .slice(0, 19)
-      .replace('T', ' ');
-    const lastLoginDate = new Date()
-      .toISOString()
-      .slice(0, 19)
-      .replace('T', ' ');
+    const registrationDate = formatIyzicoDate(order.created_at || Date.now());
+    const lastLoginDate = formatIyzicoDate(new Date());
 
     console.log('[iyzico-initialize] registrationDate formatted:', registrationDate);
     console.log('[iyzico-initialize] lastLoginDate formatted:', lastLoginDate);
@@ -202,7 +153,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     console.log('[iyzico-initialize] Creating iyzico client');
     const iyzipay = getIyzipayClient();
 
-    const request = {
+    const request: IyzicoCheckoutFormRequest = {
       locale: 'tr',
       conversationId: orderId, // orderId burada kalacak
       price: totalPrice.toFixed(2),
