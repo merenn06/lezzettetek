@@ -15,7 +15,7 @@ export function retrieveCheckoutForm(token: string): Promise<IyzicoRetrieveResul
       // Get client instance (singleton)
       const iyzipay = getIyzipayClient();
 
-      // Guard: Ensure client is not undefined
+      // Guard 1: Ensure client is not undefined
       if (!iyzipay) {
         const error = new Error('iyzipay client is undefined - cannot retrieve checkout form');
         console.error('[iyzico-checkout] Client is undefined');
@@ -23,8 +23,10 @@ export function retrieveCheckoutForm(token: string): Promise<IyzicoRetrieveResul
         return;
       }
 
-      // Guard: Ensure checkoutForm exists
-      if (!iyzipay.checkoutForm) {
+      // Guard 2: Ensure checkoutForm exists (check BEFORE accessing any properties)
+      // Use safe property access to avoid "Cannot read properties of undefined"
+      const checkoutForm = iyzipay.checkoutForm;
+      if (!checkoutForm) {
         const availableKeys = Object.keys(iyzipay || {});
         const error = new Error(
           `iyzipay.checkoutForm is undefined. Available keys on iyzipay client: ${JSON.stringify(availableKeys)}`
@@ -34,9 +36,10 @@ export function retrieveCheckoutForm(token: string): Promise<IyzicoRetrieveResul
         return;
       }
 
-      // Guard: Ensure retrieve method exists
-      if (typeof iyzipay.checkoutForm.retrieve !== 'function') {
-        const availableMethods = Object.keys(iyzipay.checkoutForm || {});
+      // Guard 3: Ensure retrieve method exists (only check AFTER confirming checkoutForm exists)
+      // Now safe to access checkoutForm.retrieve since we verified checkoutForm exists
+      if (typeof checkoutForm.retrieve !== 'function') {
+        const availableMethods = Object.keys(checkoutForm || {});
         const error = new Error(
           `iyzipay.checkoutForm.retrieve is not a function. Available methods on checkoutForm: ${JSON.stringify(availableMethods)}`
         );
@@ -50,7 +53,8 @@ export function retrieveCheckoutForm(token: string): Promise<IyzicoRetrieveResul
       };
 
       // Call retrieve with explicit error handling
-      iyzipay.checkoutForm.retrieve(request, (err: unknown, result: IyzicoRetrieveResult) => {
+      // Safe to call now: we've verified checkoutForm exists and retrieve is a function
+      checkoutForm.retrieve(request, (err: unknown, result: IyzicoRetrieveResult) => {
         if (err) {
           console.error('[iyzico-checkout] retrieve callback error:', err);
           reject(err);
