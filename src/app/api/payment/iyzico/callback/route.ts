@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
-import { retrieveCheckoutForm } from '@/lib/iyzico/client';
+import { retrieveCheckoutForm } from '@/lib/iyzico/checkout';
 import type { IyzicoRetrieveResult } from '@/lib/iyzico/types';
 
 const sb = supabase!;
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 async function extractToken(req: NextRequest): Promise<string | null> {
   // 1. Try query parameters first (most common for iyzico callbacks - GET requests)

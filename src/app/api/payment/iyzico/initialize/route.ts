@@ -6,6 +6,7 @@ import type { IyzicoCheckoutFormRequest } from '@/lib/iyzico/types';
 const sb = supabase!;
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest): Promise<Response> {
   try {
