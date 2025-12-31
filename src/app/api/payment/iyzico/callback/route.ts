@@ -8,132 +8,134 @@ const sb = supabase!;
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-async function extractToken(req: NextRequest): Promise<string | null> {
-  // 1. Try query parameters first (most common for iyzico callbacks - GET requests)
-  // Check multiple possible parameter names
-  const possibleTokenParams = ['token', 'paymentToken', 'checkoutToken', 'iyzicoToken'];
-  for (const paramName of possibleTokenParams) {
-    const queryToken = req.nextUrl.searchParams.get(paramName);
-    if (queryToken) {
-      console.log(`[iyzico-callback] ✅ Token found in query parameters as "${paramName}"`);
-      return queryToken;
-    }
+/**
+ * Gets the origin URL from request headers (proxy-aware)
+ * Uses x-forwarded-proto + x-forwarded-host if available, otherwise req.nextUrl.origin
+ */
+function getOrigin(req: NextRequest): string {
+  const forwardedProto = req.headers.get('x-forwarded-proto');
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
   }
   
-  // Log all query parameters for debugging
-  const allQueryParams = Object.fromEntries(req.nextUrl.searchParams);
-  if (Object.keys(allQueryParams).length > 0) {
-    console.log('[iyzico-callback] All query parameters:', allQueryParams);
-  }
-
-  // For POST requests, try body (can only read once, so check content-type first)
-  if (req.method === 'POST') {
-    const contentType = req.headers.get('content-type') || '';
-    console.log('[iyzico-callback] POST request, Content-Type:', contentType);
-    
-    // 2. Try form data if content-type is application/x-www-form-urlencoded
-    if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
-      try {
-        const formData = await req.formData();
-        // Check all possible token parameter names
-        for (const paramName of possibleTokenParams) {
-          const formToken = formData.get(paramName) as string | null;
-          if (formToken) {
-            console.log(`[iyzico-callback] ✅ Token found in form data as "${paramName}"`);
-            return formToken;
-          }
-        }
-        // Also check all form data keys for debugging
-        const formKeys = Array.from(formData.keys());
-        console.log('[iyzico-callback] Form data keys:', formKeys);
-        console.log('[iyzico-callback] Form data values:', formKeys.map(key => ({ key, value: formData.get(key) })));
-      } catch (error) {
-        console.error('[iyzico-callback] Error reading form data:', error);
-      }
-    }
-    // 3. Try JSON body (only for POST with JSON content-type)
-    else if (contentType.includes('application/json')) {
-      try {
-        const body = await req.json();
-        console.log('[iyzico-callback] JSON body received, keys:', Object.keys(body || {}));
-        // Check all possible token parameter names
-        for (const paramName of possibleTokenParams) {
-          if (body && typeof body === 'object' && body[paramName]) {
-            console.log(`[iyzico-callback] ✅ Token found in JSON body as "${paramName}"`);
-            return body[paramName];
-          }
-        }
-        // Log full body for debugging (first level only)
-        console.log('[iyzico-callback] JSON body content:', JSON.stringify(body).substring(0, 500));
-      } catch (error) {
-        console.error('[iyzico-callback] Error reading JSON body:', error);
-      }
-    }
-    // 4. If content-type is missing or unknown, try reading as text (URL-encoded format)
-    else if (!contentType || contentType === '') {
-      try {
-        const text = await req.text();
-        console.log('[iyzico-callback] Body as text (first 500 chars):', text.substring(0, 500));
-        // Try to parse as URL-encoded for all possible token parameter names
-        for (const paramName of possibleTokenParams) {
-          const regex = new RegExp(`${paramName}=([^&\\s]+)`);
-          const tokenMatch = text.match(regex);
-          if (tokenMatch && tokenMatch[1]) {
-            console.log(`[iyzico-callback] ✅ Token found in text body as "${paramName}" (URL-encoded)`);
-            return decodeURIComponent(tokenMatch[1]);
-          }
-        }
-      } catch (error) {
-        console.error('[iyzico-callback] Error reading body as text:', error);
-      }
-    }
-  }
-
-  return null;
+  return req.nextUrl.origin;
 }
 
-async function handleCallback(req: NextRequest): Promise<Response> {
+/**
+ * Creates a redirect response with 303 status code
+ */
+function createRedirect(req: NextRequest, path: string): NextResponse {
+  const origin = getOrigin(req);
+  const url = new URL(path, origin);
+  return NextResponse.redirect(url, { status: 303 });
+}
+
+/**
+ * Extracts token from POST form data (application/x-www-form-urlencoded)
+ * Iyzico sends token in form data after 3DS authentication
+ */
+async function extractTokenFromForm(req: NextRequest): Promise<string | null> {
+  try {
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (!contentType.includes('application/x-www-form-urlencoded')) {
+      return null;
+    }
+
+    const formData = await req.formData();
+    const token = formData.get('token') as string | null;
+    
+    if (token && typeof token === 'string' && token.trim().length > 0) {
+      console.log('[iyzico-callback] ✅ Token found in form data');
+      return token.trim();
+    }
+
+    // Log form data keys for debugging
+    const formKeys = Array.from(formData.keys());
+    console.log('[iyzico-callback] Form data keys:', formKeys);
+    
+    return null;
+  } catch (error) {
+    console.error('[iyzico-callback] Error reading form data:', error);
+    return null;
+  }
+}
+
+/**
+ * Handles GET requests (user refresh or direct access)
+ */
+export async function GET(req: NextRequest): Promise<Response> {
+  const orderId = req.nextUrl.searchParams.get('orderId');
+  const redirectPath = orderId 
+    ? `/odeme-basarisiz?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent('missing_token')}`
+    : '/odeme-basarisiz?reason=' + encodeURIComponent('missing_token');
+  
+  console.log('[iyzico-callback] GET request - redirecting to failure page');
+  return createRedirect(req, redirectPath);
+}
+
+/**
+ * Handles POST requests from Iyzico (3DS callback)
+ */
+export async function POST(req: NextRequest): Promise<Response> {
   try {
     console.log('[iyzico-callback] ========== CALLBACK RECEIVED ==========');
-    console.log('[iyzico-callback] Method:', req.method);
-    console.log('[iyzico-callback] Full URL:', req.url);
-    console.log('[iyzico-callback] Pathname:', req.nextUrl.pathname);
-    console.log('[iyzico-callback] Query params:', Object.fromEntries(req.nextUrl.searchParams));
-    console.log('[iyzico-callback] Query string:', req.nextUrl.search);
-    console.log('[iyzico-callback] Content-Type:', req.headers.get('content-type'));
-    console.log('[iyzico-callback] All headers:', Object.fromEntries(req.headers.entries()));
+    console.log('[iyzico-callback] Method: POST');
+    
+    // Get orderId from query params
+    const orderId = req.nextUrl.searchParams.get('orderId');
+    if (!orderId) {
+      console.error('[iyzico-callback] ❌ orderId bulunamadı in query params');
+      return createRedirect(req, '/odeme-basarisiz?reason=' + encodeURIComponent('missing_order_id'));
+    }
 
-    // Extract token from different sources
-    const token = await extractToken(req);
+    console.log('[iyzico-callback] Order ID from query:', orderId);
+
+    // Extract token from form data
+    const token = await extractTokenFromForm(req);
 
     if (!token || typeof token !== 'string') {
-      console.error('[iyzico-callback] ❌ Token bulunamadı!');
-      console.error('[iyzico-callback] Query params:', Object.fromEntries(req.nextUrl.searchParams));
-      console.error('[iyzico-callback] Query string:', req.nextUrl.search);
-      console.error('[iyzico-callback] Content-Type:', req.headers.get('content-type'));
-      console.error('[iyzico-callback] Method:', req.method);
-      
-      // For debugging: log raw URL
-      console.error('[iyzico-callback] Raw URL:', req.url);
-      
-      return NextResponse.json(
-        { status: 'error', message: 'Token bulunamadı' },
-        { status: 400 }
-      );
+      console.error('[iyzico-callback] ❌ Token bulunamadı in form data');
+      return createRedirect(req, `/odeme-basarisiz?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent('missing_token')}`);
     }
 
     console.log('[iyzico-callback] Token extracted:', token.substring(0, 20) + '...');
 
     // Retrieve payment result from iyzico
     console.log('[iyzico-callback] Retrieving checkout form from iyzico');
-    const result = await retrieveCheckoutForm(token);
+    let result: IyzicoRetrieveResult;
+    
+    try {
+      result = await retrieveCheckoutForm(token);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Ödeme sorgulanamadı';
+      console.error('[iyzico-callback] iyzico retrieve error:', errorMessage);
+      return createRedirect(req, `/odeme-basarisiz?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(errorMessage)}`);
+    }
 
     if (result.status !== 'success') {
-      console.error('[iyzico-callback] iyzico retrieve failed:', result.errorMessage, 'Full result:', JSON.stringify(result));
-      return NextResponse.json(
-        { status: 'error', message: result.errorMessage || 'Ödeme sorgulanamadı' },
-        { status: 500 }
-      );
+      const errorMessage = result.errorMessage || 'Ödeme sorgulanamadı';
+      console.error('[iyzico-callback] iyzico retrieve failed:', errorMessage);
+      
+      // Update order with failure status
+      try {
+        await sb
+          .from('orders')
+          .update({
+            status: 'payment_failed',
+            payment_provider: 'iyzico',
+            payment_token: token,
+            payment_status: 'failed',
+            iyzico_payment_id: result.paymentId || null,
+          })
+          .eq('id', orderId);
+      } catch (err) {
+        console.error('[iyzico-callback] Order update error:', err);
+      }
+
+      return createRedirect(req, `/odeme-basarisiz?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(errorMessage)}`);
     }
 
     const paymentStatus = result.paymentStatus;
@@ -146,17 +148,14 @@ async function handleCallback(req: NextRequest): Promise<Response> {
     console.log('[iyzico-callback] Payment ID:', paymentId);
     console.log('[iyzico-callback] Paid price:', paidPrice);
 
-    if (!conversationId) {
-      console.error('[iyzico-callback] conversationId bulunamadı, result:', JSON.stringify(result));
-      return NextResponse.json(
-        { status: 'error', message: 'Sipariş ID bulunamadı' },
-        { status: 400 }
-      );
+    // Verify conversationId matches orderId (security check)
+    if (conversationId && conversationId !== orderId) {
+      console.warn('[iyzico-callback] conversationId mismatch:', conversationId, 'vs', orderId);
     }
 
     // Update order based on payment status
     if (paymentStatus === 'SUCCESS') {
-      console.log(`[iyzico-callback] Payment successful for order ${conversationId}`);
+      console.log(`[iyzico-callback] Payment successful for order ${orderId}`);
       
       const updateData: any = {
         status: 'paid',
@@ -169,32 +168,26 @@ async function handleCallback(req: NextRequest): Promise<Response> {
 
       // Add paidPrice if available
       if (paidPrice) {
-        // Note: iyzico returns paidPrice as string, we can store it as is or convert
-        // For now, we'll store it in a note or custom field if you have one
-        // If you have a paid_price column, uncomment below:
-        // updateData.paid_price = parseFloat(paidPrice);
+        updateData.total_price = parseFloat(paidPrice);
       }
 
       const { error: updateError } = await sb
         .from('orders')
         .update(updateData)
-        .eq('id', conversationId);
+        .eq('id', orderId);
 
       if (updateError) {
         console.error('[iyzico-callback] Order update error:', updateError);
-        return NextResponse.json(
-          { status: 'error', message: 'Sipariş güncellenemedi' },
-          { status: 500 }
-        );
+        // Still redirect to success page, but log the error
+        return createRedirect(req, `/tesekkurler?orderId=${encodeURIComponent(orderId)}`);
       }
 
-      console.log(`[iyzico-callback] Order ${conversationId} updated successfully as paid`);
-      return NextResponse.json(
-        { status: 'success', message: 'Ödeme başarılı', orderId: conversationId },
-        { status: 200 }
-      );
+      console.log(`[iyzico-callback] Order ${orderId} updated successfully as paid`);
+      return createRedirect(req, `/tesekkurler?orderId=${encodeURIComponent(orderId)}`);
     } else {
-      console.log(`[iyzico-callback] Payment failed for order ${conversationId}, status: ${paymentStatus}`);
+      // Payment failed
+      const failureMessage = result.errorMessage || `Ödeme başarısız: ${paymentStatus}`;
+      console.log(`[iyzico-callback] Payment failed for order ${orderId}, status: ${paymentStatus}`);
       
       const updateData: any = {
         status: 'payment_failed',
@@ -204,41 +197,38 @@ async function handleCallback(req: NextRequest): Promise<Response> {
         iyzico_payment_id: paymentId || null,
       };
 
-      const { error: updateError } = await sb
-        .from('orders')
-        .update(updateData)
-        .eq('id', conversationId);
-
-      if (updateError) {
-        console.error('[iyzico-callback] Order update error:', updateError);
-        return NextResponse.json(
-          { status: 'error', message: 'Sipariş güncellenemedi' },
-          { status: 500 }
-        );
+      // Store error message if we have a column for it
+      if (result.errorMessage) {
+        updateData.payment_error_message = result.errorMessage;
+      }
+      if (result.errorCode) {
+        updateData.payment_error_code = result.errorCode;
       }
 
-      console.log(`[iyzico-callback] Order ${conversationId} updated as payment_failed`);
-      return NextResponse.json(
-        { status: 'failed', message: 'Ödeme başarısız', orderId: conversationId },
-        { status: 200 }
-      );
+      try {
+        await sb
+          .from('orders')
+          .update(updateData)
+          .eq('id', orderId);
+      } catch (err) {
+        console.error('[iyzico-callback] Order update error:', err);
+      }
+
+      console.log(`[iyzico-callback] Order ${orderId} updated as payment_failed`);
+      return createRedirect(req, `/odeme-basarisiz?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(failureMessage)}`);
     }
   } catch (error) {
     console.error('[iyzico-callback] Callback error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('[iyzico-callback] Error stack:', errorStack);
-    return NextResponse.json(
-      { status: 'error', message: errorMessage },
-      { status: 500 }
-    );
+    
+    // Try to get orderId from query params for redirect
+    const orderId = req.nextUrl.searchParams.get('orderId');
+    const redirectPath = orderId
+      ? `/odeme-basarisiz?orderId=${encodeURIComponent(orderId)}&reason=${encodeURIComponent(errorMessage)}`
+      : `/odeme-basarisiz?reason=${encodeURIComponent(errorMessage)}`;
+    
+    return createRedirect(req, redirectPath);
   }
-}
-
-export async function POST(req: NextRequest): Promise<Response> {
-  return handleCallback(req);
-}
-
-export async function GET(req: NextRequest): Promise<Response> {
-  return handleCallback(req);
 }

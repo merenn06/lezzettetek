@@ -70,15 +70,30 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     console.log('[iyzico-initialize] Price calculation - Subtotal:', subtotal, 'Shipping:', SHIPPING_FEE, 'Total:', totalPrice);
 
-    const callbackUrl = process.env.IYZI_CALLBACK_URL;
-    if (!callbackUrl) {
-      console.error('[iyzico-initialize] IYZI_CALLBACK_URL env değişkeni tanımlı değil');
-      return NextResponse.json(
-        { ok: false, error: 'IYZI_CALLBACK_URL env değişkeni tanımlı olmalıdır.' },
-        { status: 500 }
-      );
+    // Build callback URL dynamically from request headers
+    // For reverse proxy (prod): use x-forwarded-proto and x-forwarded-host
+    // For local: use host header
+    const forwardedProto = req.headers.get('x-forwarded-proto');
+    const forwardedHost = req.headers.get('x-forwarded-host');
+    const host = req.headers.get('host');
+    
+    let origin: string;
+    
+    if (forwardedHost) {
+      // Reverse proxy (production)
+      const proto = forwardedProto || 'https';
+      origin = `${proto}://${forwardedHost}`;
+    } else if (host) {
+      // Local development
+      const proto = forwardedProto || 'http';
+      origin = `${proto}://${host}`;
+    } else {
+      // Fallback to Next.js URL origin
+      origin = req.nextUrl.origin;
     }
-
+    
+    const callbackUrl = `${origin}/api/payment/iyzico/callback?orderId=${order.id}`;
+    
     console.log('[iyzico-initialize] Callback URL:', callbackUrl);
 
     const phoneRaw = String(order.phone || '').replace(/\D/g, '');
