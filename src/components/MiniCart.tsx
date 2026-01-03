@@ -3,6 +3,7 @@
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { remainingForFreeShipping } from '@/lib/shipping';
 
 export default function MiniCart() {
   const {
@@ -98,6 +99,7 @@ export default function MiniCart() {
 
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
+  const remaining = remainingForFreeShipping(totalPrice);
 
   const buttonOpacity = !isMobile ? 1 : isHover ? 1 : scrollOpacity;
 
@@ -285,6 +287,17 @@ export default function MiniCart() {
           {/* Footer with Total and View Cart Button */}
           {items.length > 0 && (
             <div className="border-t border-gray-200 p-4 bg-gray-50 rounded-b-xl">
+              {/* Shipping info message */}
+              {remaining > 0 ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3 text-xs text-green-800 text-center">
+                  <span className="font-semibold">Ücretsiz kargoya {formatPrice(remaining)} TL kaldı</span>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3 text-xs text-green-800 text-center">
+                  <span className="font-semibold">Kargo Ücretsiz</span>
+                </div>
+              )}
+              
               <div className="flex items-center justify-between mb-4">
                 <span className="text-lg font-bold text-gray-900">Toplam:</span>
                 <span className="text-xl font-bold text-green-700">

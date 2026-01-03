@@ -18,18 +18,41 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message || "Giriş başarısız oldu.");
+    if (authError) {
+      setError(authError.message || "Giriş başarısız oldu.");
       setLoading(false);
       return;
     }
 
-    router.push("/admin");
+    // Set admin_session cookie via API
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.error || "Oturum oluşturulamadı.");
+        setLoading(false);
+        return;
+      }
+
+      // Get redirect URL from query params or default to /admin
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectPath = urlParams.get("redirect") || "/admin";
+      
+      router.push(redirectPath);
+    } catch (err: any) {
+      setError("Oturum oluşturulurken hata oluştu.");
+      setLoading(false);
+    }
   };
 
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import LogoutButton from "./LogoutButton";
 
 const ALLOWED_ROLES = new Set(["admin", "staff"]);
 
@@ -10,7 +11,7 @@ export default async function AdminPanelLayout({
 }: {
   children: ReactNode;
 }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { session },
@@ -95,8 +96,11 @@ export default async function AdminPanelLayout({
           <div className="md:hidden text-sm font-semibold text-gray-900">
             Admin Panel
           </div>
-          <div className="text-xs text-gray-500">
-            Rol: <span className="font-medium text-gray-800">{role}</span>
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-gray-500">
+              Rol: <span className="font-medium text-gray-800">{role}</span>
+            </div>
+            <LogoutButton />
           </div>
         </header>
 

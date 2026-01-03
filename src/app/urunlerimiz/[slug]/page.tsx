@@ -176,9 +176,6 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Stock */}
-              <p className="text-sm text-gray-600 mb-4">Stok: {product.stock}</p>
-
               {/* Description */}
               <p className="text-gray-700 leading-relaxed mb-6 text-lg">
                 {product.description}

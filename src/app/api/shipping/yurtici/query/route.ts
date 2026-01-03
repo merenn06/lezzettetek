@@ -42,7 +42,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     let actualCargoKey: string | null = null;
 
     // If cargoKey provided directly, use it; otherwise fetch from order
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
     } else if (orderId) {
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("shipping_tracking_number")
+        .select("shipping_reference_number, shipping_tracking_number")
         .eq("id", orderId)
         .single();
 
@@ -63,10 +63,10 @@ export async function GET(req: Request) {
         );
       }
 
-      actualCargoKey = order.shipping_tracking_number as string | null;
+      actualCargoKey = order.shipping_reference_number as string | null;
       if (!actualCargoKey) {
         return NextResponse.json(
-          { ok: false, error: "Bu sipariş için kargo takip numarası bulunamadı" },
+          { ok: false, error: "Bu sipariş için kargo referans numarası bulunamadı" },
           { status: 400 }
         );
       }
@@ -114,18 +114,65 @@ export async function GET(req: Request) {
       );
     }
 
-    // Parse response
-    if (result.outFlag !== "0") {
-      const errorMsg = result.outResult || "Bilinmeyen hata";
-      console.error("[yurtici-query] queryShipment failed:", result);
+    // Debug: log raw response
+    console.log("[yurtici-query] queryShipment raw:", JSON.stringify(result, null, 2));
+    console.log("[yurtici-query] queryShipment raw keys:", Object.keys(result || {}));
+
+    // Robust parsing: queryShipment response bazen farklı wrapper'larla gelir
+    const raw = result;
+
+    // Extract vo from different wrapper possibilities
+    const vo =
+      raw?.queryShipmentReturn ??
+      raw?.queryShipmentResponse?.queryShipmentReturn ??
+      raw?.queryShipmentResult?.queryShipmentReturn ??
+      raw?.return?.queryShipmentReturn ??
+      raw?.result?.queryShipmentReturn ??
+      raw; // Fallback: use raw itself if it has outFlag
+
+    if (!vo) {
+      console.error("[yurtici-query] Missing queryShipmentReturn:", raw);
+      return NextResponse.json(
+        { ok: false, error: "Yurtiçi yanıtı çözümlenemedi (queryShipmentReturn yok)" },
+        { status: 502 }
+      );
+    }
+
+    console.log("[yurtici-query] vo keys:", Object.keys(vo || {}));
+    console.log("[yurtici-query] vo.outFlag:", vo.outFlag, "vo.outResult:", vo.outResult);
+
+    // Extract outFlag and outResult from vo
+    const outFlag = String(vo.outFlag ?? "");
+    const outResult = String(vo.outResult ?? "");
+
+    // Check for errors
+    if (outFlag !== "0") {
+      const errorMsg = outResult || "Bilinmeyen hata";
+      console.error("[yurtici-query] queryShipment failed - outFlag:", outFlag, "outResult:", outResult);
+      console.error("[yurtici-query] queryShipment failed raw:", JSON.stringify(raw, null, 2));
       return NextResponse.json(
         { ok: false, error: `Yurtiçi hata: ${errorMsg}` },
         { status: 502 }
       );
     }
 
-    // Check shipping details
-    const shippingDetails = result.shippingDeliveryDetailVO || [];
+    // Extract shippingDeliveryDetailVO from different variations
+    const shippingDetailsRaw =
+      vo?.shippingDeliveryDetailVO ??
+      vo?.shippingDeliveryDetailVo ??
+      vo?.shippingDeliveryDetailVos ??
+      vo?.shippingDeliveryDetailVO?.shippingDeliveryDetailVO ??
+      raw?.shippingDeliveryDetailVO ??
+      raw?.shippingDeliveryDetailVo ??
+      raw?.shippingDeliveryDetailVos ??
+      [];
+
+    const shippingDetails = Array.isArray(shippingDetailsRaw)
+      ? shippingDetailsRaw
+      : shippingDetailsRaw
+        ? [shippingDetailsRaw]
+        : [];
+
     if (!Array.isArray(shippingDetails) || shippingDetails.length === 0) {
       return NextResponse.json(
         { ok: true, cargoKey: actualCargoKey, status: "unknown", message: "Kargo bilgisi bulunamadı" },
@@ -136,20 +183,44 @@ export async function GET(req: Request) {
     const detail = shippingDetails[0];
     const operationStatus = detail.operationStatus || "";
 
-    // If delivered (DLV), update order
-    if (operationStatus === "DLV" && orderId) {
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          status: "delivered",
-          delivered_at: new Date().toISOString(),
-          shipping_status: "delivered",
-        })
-        .eq("id", orderId);
+    // Extract tracking/barcode number from detail if available
+    const trackingNumber = 
+      detail?.barcode ||
+      detail?.barcodeNo ||
+      detail?.shipmentNo ||
+      detail?.shipmentNumber ||
+      detail?.trackingNo ||
+      detail?.trackingNumber ||
+      detail?.waybillNo ||
+      detail?.awbNo ||
+      null;
 
-      if (updateError) {
-        console.error("[yurtici-query] Failed to update order as delivered:", updateError);
-        // Don't fail the request
+    // Update order based on operation status
+    if (orderId) {
+      const updateData: any = {};
+
+      if (operationStatus === "DLV") {
+        updateData.shipping_status = "delivered";
+        updateData.delivered_at = new Date().toISOString();
+      } else {
+        updateData.shipping_status = "in_transit";
+      }
+
+      // Update tracking number if found
+      if (trackingNumber) {
+        updateData.shipping_tracking_number = trackingNumber;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update(updateData)
+          .eq("id", orderId);
+
+        if (updateError) {
+          console.error("[yurtici-query] Failed to update order:", updateError);
+          // Don't fail the request
+        }
       }
     }
 

@@ -4,6 +4,7 @@ import { Order, OrderItem } from '@/types/orders';
 import { notFound } from 'next/navigation';
 import OrderStatusEditor from '@/components/admin/OrderStatusEditor';
 import YurticiShipButton from '@/components/admin/YurticiShipButton';
+import RefreshTrackingButton from '@/components/admin/RefreshTrackingButton';
 
 async function getOrder(orderId: string): Promise<Order | null> {
   if (!supabase) {
@@ -221,6 +222,38 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
                     orderId={order!.id} 
                     existingTracking={order!.shipping_tracking_number} 
                   />
+                  {/* Show "Barkodu Yenile" button if status is created_pending_barcode OR if reference exists but tracking doesn't */}
+                  {(order!.shipping_status === "created_pending_barcode" || (order!.shipping_reference_number && !order!.shipping_tracking_number)) && (
+                    <div className="mt-3">
+                      <RefreshTrackingButton orderId={order!.id} />
+                    </div>
+                  )}
+                  {order!.shipping_tracking_number && (
+                    <div className="mt-2 text-sm">
+                      <p className="text-gray-600">
+                        <span className="font-semibold">Kargo Takip No:</span> {order!.shipping_tracking_number}
+                      </p>
+                    </div>
+                  )}
+                  {order!.shipping_reference_number && (
+                    <div className="mt-1 text-sm">
+                      <p className="text-gray-600">
+                        <span className="font-semibold">Referans No:</span> {order!.shipping_reference_number}
+                      </p>
+                    </div>
+                  )}
+                  {order!.shipping_reference_number && (
+                    <div className="mt-3">
+                      <a
+                        href={`/api/shipping/yurtici/label?orderId=${order!.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        CargoKey Barkod Yazdır
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

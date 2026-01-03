@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { calculateShipping } from '@/lib/shipping';
 
 export type OrderItemInput = {
   product_id: string; // UUID
@@ -30,7 +31,7 @@ export async function createOrderWithItems(
     throw new Error('Sipariş en az bir ürün içermelidir.');
   }
 
-  // Calculate line totals and total price
+  // Calculate line totals and subtotal
   const orderItems = items.map((item) => {
     const lineTotal = item.unit_price * item.quantity;
     return {
@@ -39,7 +40,13 @@ export async function createOrderWithItems(
     };
   });
 
-  const total_price = orderItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  const subtotal = orderItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  
+  // Calculate shipping fee on server side (don't trust frontend)
+  const shippingFee = calculateShipping(subtotal);
+  
+  // Total price includes shipping
+  const total_price = subtotal + shippingFee;
 
   // Insert order - write email to both email and customer_email for backward compatibility
   const customerEmail = orderData.email || null;

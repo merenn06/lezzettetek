@@ -18,11 +18,13 @@ export type Order = {
   // Optional shipping fields (populated once shipment is created)
   shipping_carrier?: string | null;
   shipping_tracking_number?: string | null;
+  shipping_reference_number?: string | null;
   shipping_payment_type?: string | null;
   shipped_at?: string | null;
   delivered_at?: string | null;
   shipping_label_url?: string | null;
   shipping_status?: string | null;
+  shipping_error_message?: string | null;
   // Optional payment fields (populated for iyzico payments)
   payment_provider?: string | null;
   payment_token?: string | null;

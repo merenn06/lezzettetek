@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     // Fetch order
     const { data: order, error: orderError } = await supabase

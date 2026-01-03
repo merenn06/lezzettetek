@@ -64,8 +64,16 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     console.log('[iyzico-initialize] Order items found:', orderItems.length);
 
-    const SHIPPING_FEE = 39.9;
-    const subtotal = Number(order.total_price || 0);
+    // Calculate subtotal from order items (don't trust order.total_price which may include shipping)
+    // Use item.price (line_total) if available, otherwise calculate from unit_price * quantity
+    const subtotal = orderItems.reduce((sum, item) => {
+      const lineTotal = Number(item.price || 0) || (Number(item.unit_price || 0) * Number(item.quantity || 0));
+      return sum + lineTotal;
+    }, 0);
+    
+    // Calculate shipping fee on server side
+    const { calculateShipping } = await import('@/lib/shipping');
+    const SHIPPING_FEE = calculateShipping(subtotal);
     const totalPrice = subtotal + SHIPPING_FEE;
 
     console.log('[iyzico-initialize] Price calculation - Subtotal:', subtotal, 'Shipping:', SHIPPING_FEE, 'Total:', totalPrice);

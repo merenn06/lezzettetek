@@ -4,9 +4,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
-// Shipping fee constant - can be easily changed
-const SHIPPING_FEE = 39.90;
+import { calculateShipping } from '@/lib/shipping';
 
 // Helper function to execute scripts from HTML content
 function executeScripts(container: HTMLElement) {
@@ -63,7 +61,7 @@ export default function CheckoutPage() {
   };
 
   const subtotal = getTotalPrice();
-  const shipping = SHIPPING_FEE;
+  const shipping = calculateShipping(subtotal);
   const total = subtotal + shipping;
 
   // Render iyzico form content when available

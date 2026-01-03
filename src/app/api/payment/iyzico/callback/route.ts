@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { retrieveCheckoutForm } from '@/lib/iyzico/checkout';
 import type { IyzicoRetrieveResult } from '@/lib/iyzico/types';
+import { createYurticiShipmentForOrder } from '@/lib/shipping/yurtici';
 
 const sb = supabase!;
 
@@ -183,6 +184,25 @@ export async function POST(req: NextRequest): Promise<Response> {
       }
 
       console.log(`[iyzico-callback] Order ${orderId} updated successfully as paid`);
+
+      // Automatically create Yurtiçi shipment after successful payment
+      try {
+        console.log(`[iyzico-callback] Attempting to create shipment for order ${orderId}`);
+        const shipmentResult = await createYurticiShipmentForOrder(orderId);
+        
+        if (shipmentResult.ok) {
+          console.log(`[iyzico-callback] Shipment created successfully for order ${orderId}, tracking: ${shipmentResult.trackingNumber}`);
+        } else {
+          console.warn(`[iyzico-callback] Shipment creation failed for order ${orderId}: ${shipmentResult.error}`);
+          // Order remains paid, but shipping_status will be 'create_failed'
+          // Customer still gets redirected to success page
+        }
+      } catch (shipmentError) {
+        console.error(`[iyzico-callback] Error creating shipment for order ${orderId}:`, shipmentError);
+        // Don't fail the payment flow - order is already paid
+        // Shipping can be created manually later
+      }
+
       return createRedirect(req, `/tesekkurler?orderId=${encodeURIComponent(orderId)}`);
     } else {
       // Payment failed

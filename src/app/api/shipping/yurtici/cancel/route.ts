@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     let cargoKey: string | null = null;
 
     // If cargoKey provided directly, use it; otherwise fetch from order
