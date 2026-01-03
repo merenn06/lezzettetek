@@ -212,6 +212,16 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Content Section */}
+          {product.content && (
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Ürün İçeriği</h2>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                {product.content}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>

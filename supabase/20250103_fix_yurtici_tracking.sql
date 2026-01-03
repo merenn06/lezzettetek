@@ -9,3 +9,4 @@ SET
   shipping_status = 'created_pending_barcode'
 WHERE shipping_tracking_number LIKE 'LT%';
 
+

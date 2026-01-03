@@ -31,6 +31,7 @@ export default function AdminUrunlerPage() {
     price: '',
     stock: '',
     description: '',
+    content: '',
     imageFile: null as File | null,
   });
 
@@ -166,6 +167,7 @@ export default function AdminUrunlerPage() {
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock, 10),
         description: formData.description.trim(),
+        content: formData.content.trim() || null,
         image_url: imageUrl,
       };
 
@@ -221,6 +223,7 @@ export default function AdminUrunlerPage() {
       price: product.price.toString(),
       stock: product.stock.toString(),
       description: product.description,
+      content: product.content || '',
       imageFile: null,
     });
     // Scroll to form
@@ -259,6 +262,7 @@ export default function AdminUrunlerPage() {
       price: '',
       stock: '',
       description: '',
+      content: '',
       imageFile: null,
     });
     setEditingProduct(null);
@@ -395,6 +399,20 @@ export default function AdminUrunlerPage() {
                 onChange={handleInputChange}
                 rows={4}
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                İçerik
+              </label>
+              <textarea
+                id="content"
+                name="content"
+                value={formData.content}
+                onChange={handleInputChange}
+                rows={6}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
             </div>
