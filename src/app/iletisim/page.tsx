@@ -223,6 +223,11 @@ export default function Iletisim() {
                         +90 (531) 703 95 91
                       </a>
                     </p>
+                    <p className="text-gray-600">
+                      <a href="tel:+902166021051" className="hover:text-green-700 transition-colors">
+                        +90 (216) 602 10 51
+                      </a>
+                    </p>
                   </div>
                 </div>
 
