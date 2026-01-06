@@ -16,7 +16,8 @@ export type CreateOrderInput = {
   city: string;
   district: string;
   note?: string | null;
-  payment_method: 'havale' | 'kapida' | 'iyzico';
+  payment_method: 'havale' | 'kapida' | 'iyzico' | 'cod';
+  shipping_payment_type?: "cash" | "card" | null; // COD tahsilat tipi (nakit/kart)
 };
 
 export async function createOrderWithItems(
@@ -50,8 +51,23 @@ export async function createOrderWithItems(
 
   // Insert order - write email to both email and customer_email for backward compatibility
   const customerEmail = orderData.email || null;
-  // Set status based on payment method
+  // Set status based on payment method (order status - separate from payment_status)
   const orderStatus = orderData.payment_method === 'iyzico' ? 'pending_payment' : 'yeni';
+  
+  // Set payment_status based on payment method
+  // COD (kapida or cod) -> awaiting_payment
+  // Online (iyzico, havale) -> null (will be set when paid)
+  const isCOD = orderData.payment_method === 'kapida' || orderData.payment_method === 'cod';
+  const paymentStatus = isCOD ? 'awaiting_payment' : null;
+  
+  // Set shipping_payment_type for COD orders
+  // Kontrat gereği her zaman "card" (kredi kartı) - nakit seçeneği kaldırıldı
+  let shippingPaymentType: "cash" | "card" | null = null;
+  if (isCOD) {
+    // Always "card" - contract requires credit card collection only
+    shippingPaymentType = "card";
+  }
+  
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
@@ -64,7 +80,9 @@ export async function createOrderWithItems(
       district: orderData.district,
       note: orderData.note || null,
       payment_method: orderData.payment_method,
-      status: orderStatus,
+      status: orderStatus, // Order status (yeni, pending_payment, etc.)
+      payment_status: paymentStatus, // Payment status (awaiting_payment, paid, etc.)
+      shipping_payment_type: shippingPaymentType, // COD tahsilat tipi (kontrat gereği her zaman "card")
       total_price: total_price,
     })
     .select('id')

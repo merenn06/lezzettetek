@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { fetchOrderSeqFromYurtici } from "@/lib/shipping/yurtici";
+import { fetchOrderSeqFromYurtici, refreshYurticiCodStatus } from "@/lib/shipping/yurtici";
 
 type RequestBody = {
   orderId?: string;
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     // Fetch order
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("shipping_reference_number, shipping_tracking_number")
+      .select("*")
       .eq("id", orderId)
       .single();
 
@@ -92,10 +92,12 @@ export async function POST(req: Request) {
     // Use shipping_reference_number as invoiceKey (they are the same in our implementation)
     const invoiceKey = order.shipping_reference_number as string;
 
-    // Fetch ORDER_SEQ from Yurtiçi using Report WSDL with 3 retry attempts
+    // Fetch ORDER_SEQ from Yurtiçi using Report WSDL with 12 retry attempts (total ~2 minutes)
     let orderSeq: string | null = null;
     let labelUrl: string | null = null;
-    const maxAttempts = 3;
+    let lastOutResult: string | null = null;
+    let lastOutFlag: string | null = null;
+    const maxAttempts = 6;
     const retryDelay = 10000; // 10 seconds
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -104,16 +106,33 @@ export async function POST(req: Request) {
         const result = await fetchOrderSeqFromYurtici(invoiceKey, apiUser, apiPass, userLanguage);
         orderSeq = result.orderSeq;
         labelUrl = result.labelUrl;
+        lastOutResult = result.outResult || null;
+        lastOutFlag = result.outFlag || null;
 
         if (orderSeq) {
-          console.log(`[yurtici-refresh-tracking] Successfully fetched ORDER_SEQ on attempt ${attempt}/${maxAttempts}`);
+          console.log(
+            `[yurtici-refresh-tracking] Successfully fetched ORDER_SEQ on attempt ${attempt}/${maxAttempts}`
+          );
           break; // Success, exit retry loop
         } else {
-          console.log(`[yurtici-refresh-tracking] ORDER_SEQ not found on attempt ${attempt}/${maxAttempts}`);
-          // If this is not the last attempt, wait before retrying
-          if (attempt < maxAttempts) {
-            console.log(`[yurtici-refresh-tracking] Waiting ${retryDelay / 1000} seconds before retry...`);
+          console.log(
+            `[yurtici-refresh-tracking] ORDER_SEQ not found on attempt ${attempt}/${maxAttempts}, outFlag: ${
+              lastOutFlag || 'N/A'
+            }, outResult: ${lastOutResult || 'N/A'}`
+          );
+
+          // Only retry with backoff if Report explicitly says "record not found" (outFlag=2)
+          const shouldRetryNotFound = lastOutFlag === "2";
+          if (shouldRetryNotFound && attempt < maxAttempts) {
+            console.log(
+              `[yurtici-refresh-tracking] outFlag=2 (record not found). Waiting ${
+                retryDelay / 1000
+              } seconds before retry...`
+            );
             await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          } else {
+            // Either not a "not found" case, or max attempts reached - stop retrying
+            break;
           }
         }
       } catch (fetchErr: any) {
@@ -149,10 +168,23 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!orderSeq) {
-      console.log(`[yurtici-refresh-tracking] ORDER_SEQ not found after ${maxAttempts} attempts`);
+    // Check if "Kayıt bulunamadı" - treat as pending, not error
+    if (!orderSeq && lastOutResult && lastOutResult.toLowerCase().includes("kayıt bulunamadı")) {
+      console.log(`[yurtici-refresh-tracking] ORDER_SEQ not found after ${maxAttempts} attempts, but outResult indicates pending: "${lastOutResult}"`);
       return NextResponse.json(
-        { ok: false, error: "Kargo kaydı oluştu. Barkod/ORDER_SEQ şube kabulünden sonra üretilecektir. Lütfen daha sonra tekrar deneyin." },
+        { 
+          status: "pending", 
+          message: "ORDER_SEQ henüz oluşmadı, birazdan tekrar deneyin",
+          ok: true // Still ok, just pending
+        },
+        { status: 202 }
+      );
+    }
+
+    if (!orderSeq) {
+      console.log(`[yurtici-refresh-tracking] ORDER_SEQ not found after ${maxAttempts} attempts, outResult: ${lastOutResult || 'N/A'}`);
+      return NextResponse.json(
+        { ok: false, error: "Sorgu servisinden ORDER_SEQ alınamadı. Lütfen daha sonra tekrar deneyin." },
         { status: 404 }
       );
     }
@@ -167,6 +199,19 @@ export async function POST(req: Request) {
 
     if (labelUrl) {
       updateData.shipping_label_url = labelUrl;
+    }
+
+    // If this is a COD order, also refresh COD status via Report service
+    const isCOD = order.payment_method === "cod" || order.payment_method === "kapida";
+    if (isCOD) {
+      try {
+        await refreshYurticiCodStatus(order, supabase, apiUser, apiPass, userLanguage);
+      } catch (codErr: any) {
+        console.error(
+          "[yurtici-refresh-tracking] Failed to refresh COD status (non-fatal):",
+          codErr
+        );
+      }
     }
 
     const { error: updateError } = await supabase

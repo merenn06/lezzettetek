@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
+import { formatProductContentReact } from '@/lib/formatProductContentReact';
 
 const CATEGORY_STYLES: Record<string, { badge: string; gradient: string }> = {
   kavanoz: { badge: 'bg-green-100 text-green-700', gradient: 'from-green-200 to-green-300' },
@@ -176,10 +177,33 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Description */}
-              <p className="text-gray-700 leading-relaxed mb-6 text-lg">
-                {product.description}
-              </p>
+              {/* Product Content Section */}
+              {(product.description || product.content) && (
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Ürün İçeriği</h2>
+                  
+                  {/* Description (İçindekiler, Net Ağırlık vs. - formatlanmış) */}
+                  {product.description && (
+                    <div className="text-gray-700 leading-relaxed mb-4">
+                      {formatProductContentReact(product.description)}
+                    </div>
+                  )}
+
+                  {/* Content - eğer description yoksa ve content'te İçindekiler varsa formatla */}
+                  {product.content && !product.description && (
+                    <div className="text-gray-700 leading-relaxed">
+                      {formatProductContentReact(product.content)}
+                    </div>
+                  )}
+
+                  {/* Content (Uzun açıklama metni) - sadece description varsa göster */}
+                  {product.content && product.description && (
+                    <p className="text-gray-700 leading-relaxed text-lg mt-4">
+                      {product.content}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Call-to-Action Buttons */}
               <div className="mt-auto space-y-4">
@@ -212,16 +236,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
-
-          {/* Content Section */}
-          {product.content && (
-            <div className="mt-12 pt-8 border-t border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Ürün İçeriği</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                {product.content}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </main>

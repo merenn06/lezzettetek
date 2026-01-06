@@ -5,6 +5,10 @@ import { notFound } from 'next/navigation';
 import OrderStatusEditor from '@/components/admin/OrderStatusEditor';
 import YurticiShipButton from '@/components/admin/YurticiShipButton';
 import RefreshTrackingButton from '@/components/admin/RefreshTrackingButton';
+import PrintBarcodeButton from '@/components/admin/PrintBarcodeButton';
+import PrintCollectionLabelButton from '@/components/admin/PrintCollectionLabelButton';
+import CODPaymentTypeEditor from '@/components/admin/CODPaymentTypeEditor';
+import { fetchOrderSeqFromYurtici, queryYurticiShipment } from '@/lib/shipping/yurtici';
 
 async function getOrder(orderId: string): Promise<Order | null> {
   if (!supabase) {
@@ -122,8 +126,43 @@ function getPaymentMethodLabel(method: string): string {
   const methodMap: Record<string, string> = {
     havale: 'Havale',
     kapida: 'Kapıda Ödeme',
+    iyzico: 'Online Ödeme',
   };
   return methodMap[method] || method;
+}
+
+function getPaymentStatusBadge(paymentMethod: string, paymentStatus: string | null | undefined, orderStatus: string): { label: string; className: string } {
+  // Check if payment method is COD: 'cod' or 'kapida'
+  const isCOD = paymentMethod === 'cod' || paymentMethod === 'kapida';
+  
+  // Check if payment method is online: 'iyzico' or 'havale'
+  const isOnline = paymentMethod === 'iyzico' || paymentMethod === 'havale';
+  
+  // Normalize payment status
+  const status = paymentStatus || 
+    (orderStatus === 'paid' ? 'paid' : 
+     orderStatus === 'pending_payment' ? 'awaiting_payment' :
+     orderStatus === 'payment_failed' ? 'failed' :
+     'unpaid');
+
+  if (isOnline) {
+    if (status === 'paid') {
+      return { label: 'Online ödeme - Paid', className: 'bg-green-100 text-green-800' };
+    }
+    return { label: `Online ödeme - ${status}`, className: 'bg-yellow-100 text-yellow-800' };
+  }
+
+  if (isCOD) {
+    if (status === 'awaiting_payment') {
+      return { label: 'Kapıda ödeme – Tahsilat bekleniyor', className: 'bg-blue-100 text-blue-800' };
+    }
+    if (status === 'paid') {
+      return { label: 'Kapıda ödeme - Paid', className: 'bg-green-100 text-green-800' };
+    }
+    return { label: `Kapıda ödeme - ${status}`, className: 'bg-gray-100 text-gray-800' };
+  }
+
+  return { label: `${paymentMethod} - ${status}`, className: 'bg-gray-100 text-gray-800' };
 }
 
 type Props = {
@@ -136,6 +175,15 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
   let order: Order | null = null;
   let orderItems: OrderItem[] = [];
   let error: string | null = null;
+  let reportDocsSummary:
+    | {
+        documentType: string | null;
+        docId: string | null;
+        docNumber: string | null;
+        fieldName: string | null;
+        fieldValue: string | null;
+      }[]
+    | null = null;
 
   try {
     order = await getOrder(orderId);
@@ -161,6 +209,52 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
     }
 
     orderItems = await getOrderItems(orderId);
+
+    // For COD orders, fetch compact Report document summaries (no PII) for debug UI
+    const isCOD = order.payment_method === 'cod' || order.payment_method === 'kapida';
+    if (isCOD && order.shipping_reference_number) {
+      const apiUser = process.env.YURTICI_USER_STD || process.env.YURTICI_USER_GO;
+      const apiPass = process.env.YURTICI_PASS_STD || process.env.YURTICI_PASS_GO;
+      const userLanguage = process.env.YURTICI_LANG || 'TR';
+
+      if (apiUser && apiPass) {
+        try {
+          const reportRes = await fetchOrderSeqFromYurtici(
+            order.shipping_reference_number,
+            apiUser,
+            apiPass,
+            userLanguage
+          );
+          reportDocsSummary = reportRes.reportDocumentsSummary ?? null;
+        } catch (reportErr) {
+          console.error('[admin-order] Failed to fetch reportDocsSummary for debug:', reportErr);
+        }
+      }
+    }
+
+    // For Yurtiçi shipments, fetch latest tracking info directly via SOAP helper
+    let yurticiTracking: any = null;
+    if (order.shipping_carrier === 'yurtici' && order.shipping_reference_number) {
+      const apiUser = process.env.YURTICI_USER_STD || process.env.YURTICI_USER_GO;
+      const apiPass = process.env.YURTICI_PASS_STD || process.env.YURTICI_PASS_GO;
+      const userLanguage = process.env.YURTICI_LANG || 'TR';
+
+      if (apiUser && apiPass) {
+        try {
+          yurticiTracking = await queryYurticiShipment(
+            order.shipping_reference_number,
+            apiUser,
+            apiPass,
+            userLanguage
+          );
+        } catch (trackErr) {
+          console.error('[admin-order] Failed to fetch Yurtici tracking info:', trackErr);
+        }
+      }
+    }
+
+    // Attach tracking info to order object for easier render
+    (order as any)._yurticiTracking = yurticiTracking;
   } catch (err) {
     error = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.';
   }
@@ -220,7 +314,8 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
                   <h4 className="text-sm font-semibold text-gray-500 mb-2">Yurtiçi Kargo</h4>
                   <YurticiShipButton 
                     orderId={order!.id} 
-                    existingTracking={order!.shipping_tracking_number} 
+                    existingTracking={order!.shipping_tracking_number}
+                    order={order}
                   />
                   {/* Show "Barkodu Yenile" button if status is created_pending_barcode OR if reference exists but tracking doesn't */}
                   {(order!.shipping_status === "created_pending_barcode" || (order!.shipping_reference_number && !order!.shipping_tracking_number)) && (
@@ -242,16 +337,74 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
                       </p>
                     </div>
                   )}
-                  {order!.shipping_reference_number && (
-                    <div className="mt-3">
-                      <a
-                        href={`/api/shipping/yurtici/label?orderId=${order!.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
-                      >
-                        CargoKey Barkod Yazdır
-                      </a>
+                  <PrintBarcodeButton
+                    orderId={order!.id}
+                    hasTrackingNumber={!!order!.shipping_tracking_number}
+                    hasReferenceNumber={!!order!.shipping_reference_number}
+                    order={order}
+                  />
+                  <PrintCollectionLabelButton
+                    orderId={order!.id}
+                    order={order}
+                  />
+                  {/* Yurtiçi Takip mini blok */}
+                  {order!.shipping_carrier === 'yurtici' && (order as any)._yurticiTracking && (
+                    <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                      <h5 className="text-xs font-semibold text-gray-600 mb-1">Yurtiçi Takip</h5>
+                      {(() => {
+                        const tracking: any = (order as any)._yurticiTracking;
+                        const statusName =
+                          tracking?.statusInfo?.name || tracking?.statusCode || 'Bilinmiyor';
+                        const message = tracking?.message || '';
+                        const hasProblem = !!tracking?.hasProblemReason;
+                        const events: any[] = Array.isArray(tracking?.events)
+                          ? tracking.events
+                          : [];
+                        const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+
+                        return (
+                          <div className="space-y-1 text-xs text-gray-800">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">
+                                {statusName}
+                              </span>
+                              {hasProblem && (
+                                <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-red-100 text-red-700 border border-red-200">
+                                  Sorunlu
+                                </span>
+                              )}
+                            </div>
+                            {message && (
+                              <p className="text-[11px] text-gray-700">
+                                {message}
+                              </p>
+                            )}
+                            {lastEvent && (
+                              <p className="text-[11px] text-gray-700">
+                                <span className="font-semibold">{lastEvent.eventName || 'Son durum'}</span>
+                                {': '}
+                                {lastEvent.eventDate && (
+                                  <span>
+                                    {lastEvent.eventDate}
+                                    {lastEvent.eventTime ? ` ${lastEvent.eventTime}` : ''}
+                                  </span>
+                                )}
+                                {(lastEvent.unitName || lastEvent.cityName || lastEvent.townName) && (
+                                  <span>
+                                    {' • '}
+                                    {lastEvent.unitName && `${lastEvent.unitName} `}
+                                    {(lastEvent.cityName || lastEvent.townName) && (
+                                      <span>
+                                        ({lastEvent.cityName || ''}{lastEvent.cityName && lastEvent.townName ? ' / ' : ''}{lastEvent.townName || ''})
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -260,8 +413,110 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Ödeme Yöntemi</h3>
-              <p className="text-gray-900">{getPaymentMethodLabel(order!.payment_method)}</p>
+              <div className="space-y-2">
+                <p className="text-gray-900">{getPaymentMethodLabel(order!.payment_method)}</p>
+                {(() => {
+                  const paymentBadge = getPaymentStatusBadge(
+                    order!.payment_method,
+                    order!.payment_status || null,
+                    order!.status
+                  );
+                  return (
+                    <span className={`px-3 py-1 rounded text-sm font-semibold ${paymentBadge.className}`}>
+                      {paymentBadge.label}
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
+
+            {/* COD Tahsilat Tipi - sadece COD siparişlerde göster */}
+            {(order!.payment_method === 'kapida' || order!.payment_method === 'cod') && (
+              <>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 mb-2">Tahsilat Tipi</h3>
+                  <CODPaymentTypeEditor
+                    orderId={order!.id}
+                    initialPaymentType={order!.shipping_payment_type as "cash" | "card" | null}
+                  />
+                </div>
+
+                {/* Yurtiçi COD durumu ve debug alanları */}
+                <div className="md:col-span-2 mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Yurtiçi COD Durumu</h3>
+                  <p className="text-sm text-gray-800 mb-2">
+                    <span className="font-semibold">Yurtiçi:</span>{' '}
+                    {order!.yurtici_cod_confirmed
+                      ? 'Tahsilatlı ✅'
+                      : 'Normal ❌'}
+                  </p>
+
+                  {(order!.yurtici_cod_doc_id || order!.yurtici_cod_doc_type) && (
+                    <p className="text-sm text-gray-800 mb-2">
+                      <span className="font-semibold">COD Doc:</span>{' '}
+                      {order!.yurtici_cod_doc_type || 'N/A'}{' '}
+                      {order!.yurtici_cod_doc_id ? `(${order!.yurtici_cod_doc_id})` : ''}
+                    </p>
+                  )}
+
+                  {order!.yurtici_report_document_types && order!.yurtici_report_document_types.length > 0 && (
+                    <details className="mt-2 text-xs text-gray-700">
+                      <summary className="cursor-pointer font-semibold">
+                        Report document types (debug)
+                      </summary>
+                      <div className="mt-1">
+                        {order!.yurtici_report_document_types.join(', ')}
+                      </div>
+                    </details>
+                  )}
+
+                  {reportDocsSummary && reportDocsSummary.length > 0 && (
+                    <details className="mt-2 text-xs text-gray-700">
+                      <summary className="cursor-pointer font-semibold">
+                        Report documents (debug, max 20)
+                      </summary>
+                      <pre className="mt-1 whitespace-pre-wrap break-all">
+                        {JSON.stringify(reportDocsSummary.slice(0, 20), null, 2)}
+                      </pre>
+                    </details>
+                  )}
+
+                  <details className="mt-2 text-xs text-gray-700">
+                    <summary className="cursor-pointer font-semibold">
+                      Gönderilen COD alanları (debug)
+                    </summary>
+                    <div className="mt-1 grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="font-semibold">ttCollectionType:</span>{' '}
+                        {order!.yurtici_tt_collection_type ?? 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-semibold">ttDocumentId:</span>{' '}
+                        {order!.yurtici_tt_document_id ?? 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-semibold">ttInvoiceAmount:</span>{' '}
+                        {order!.yurtici_tt_invoice_amount != null
+                          ? `${order!.yurtici_tt_invoice_amount} ₺`
+                          : 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-semibold">ttDocumentSaveType:</span>{' '}
+                        {order!.yurtici_tt_document_save_type ?? 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-semibold">dcCreditRule:</span>{' '}
+                        {order!.yurtici_dc_credit_rule ?? 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-semibold">dcSelectedCredit:</span>{' '}
+                        {order!.yurtici_dc_selected_credit ?? 'N/A'}
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </>
+            )}
 
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Müşteri Adı</h3>

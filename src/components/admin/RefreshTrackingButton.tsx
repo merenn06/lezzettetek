@@ -10,7 +10,7 @@ interface RefreshTrackingButtonProps {
 export default function RefreshTrackingButton({ orderId }: RefreshTrackingButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(
     null
   );
 
@@ -28,6 +28,20 @@ export default function RefreshTrackingButton({ orderId }: RefreshTrackingButton
       });
 
       const result = await response.json();
+
+      // Handle 202 (pending) status
+      if (response.status === 202 && result.status === 'pending') {
+        setMessage({
+          type: 'warning',
+          text: result.message || 'ORDER_SEQ henüz oluşmadı, birazdan tekrar deneyin',
+        });
+        // Clear warning message after 8 seconds
+        setTimeout(() => {
+          setMessage(null);
+        }, 8000);
+        setLoading(false);
+        return;
+      }
 
       if (!response.ok || !result.ok) {
         throw new Error(result.error || 'Takip numarası yenilenirken bir hata oluştu');
@@ -69,6 +83,8 @@ export default function RefreshTrackingButton({ orderId }: RefreshTrackingButton
           className={`text-sm p-2 rounded ${
             message.type === 'success'
               ? 'bg-green-50 text-green-800 border border-green-200'
+              : message.type === 'warning'
+              ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >

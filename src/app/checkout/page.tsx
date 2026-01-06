@@ -47,6 +47,7 @@ export default function CheckoutPage() {
     shippingMethod: 'yurtici-kargo',
     // Payment
     paymentMethod: 'kapida-odeme',
+    codPaymentType: 'card' as 'cash' | 'card', // COD tahsilat tipi - kontrat gereği her zaman "card"
     // Confirmation
     termsAccepted: false,
     privacyAccepted: false,
@@ -240,6 +241,8 @@ export default function CheckoutPage() {
       district: formData.district.trim(),
       note: formData.deliveryNote.trim() || null,
       payment_method: paymentMethod,
+      // COD tahsilat tipi: kontrat gereği her zaman "card" (kredi kartı)
+      shipping_payment_type: paymentMethod === 'kapida' ? 'card' : null,
       items: items.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -638,9 +641,9 @@ export default function CheckoutPage() {
                       className="mt-1 mr-3 w-4 h-4 text-green-700 focus:ring-green-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">Kapıda Ödeme (Nakit/Kart)</span>
+                      <span className="font-medium text-gray-900">Kapıda Ödeme (Kredi Kartı)</span>
                       <p className="text-sm text-gray-500 mt-1">
-                        Ödemenizi teslimat sırasında kargo görevlisine nakit veya kartla yapabilirsiniz.
+                        Ödemenizi teslimat sırasında kargo görevlisine kredi kartı ile yapabilirsiniz. (Kontrat gereği sadece kredi kartı kabul edilmektedir)
                       </p>
                     </div>
                   </label>

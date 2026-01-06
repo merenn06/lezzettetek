@@ -1,6 +1,8 @@
 export type OrderStatus = 'yeni' | 'hazırlanıyor' | 'kargoda' | 'tamamlandı' | 'iptal' | 'pending_payment' | 'paid' | 'payment_failed';
 
-export type PaymentMethod = 'havale' | 'kapida' | 'iyzico';
+export type PaymentMethod = 'havale' | 'kapida' | 'iyzico' | 'cod';
+
+export type PaymentStatus = 'unpaid' | 'awaiting_payment' | 'paid' | 'failed' | 'refunded';
 
 export type Order = {
   id: string;
@@ -19,12 +21,28 @@ export type Order = {
   shipping_carrier?: string | null;
   shipping_tracking_number?: string | null;
   shipping_reference_number?: string | null;
-  shipping_payment_type?: string | null;
+  shipping_payment_type?: "cash" | "card" | null; // COD tahsilat tipi: cash (nakit) | card (kredi kartı)
   shipped_at?: string | null;
   delivered_at?: string | null;
   shipping_label_url?: string | null;
   shipping_status?: string | null;
   shipping_error_message?: string | null;
+  // Yurtiçi COD / report debug fields
+  yurtici_cod_doc_id?: string | null;
+  yurtici_cod_doc_type?: string | null;
+  yurtici_cod_confirmed?: boolean | null;
+  yurtici_report_document_types?: string[] | null;
+  yurtici_tt_collection_type?: string | null;
+  yurtici_tt_document_id?: string | null;
+  yurtici_tt_invoice_amount?: number | null;
+  yurtici_tt_document_save_type?: string | null;
+  yurtici_dc_credit_rule?: string | null;
+  yurtici_dc_selected_credit?: string | null;
+  yurtici_job_id?: number | null;
+  yurtici_create_out_flag?: string | null;
+  yurtici_create_out_result?: string | null;
+  yurtici_create_err_code?: string | null;
+  yurtici_create_err_message?: string | null;
   // Optional payment fields (populated for iyzico payments)
   payment_provider?: string | null;
   payment_token?: string | null;

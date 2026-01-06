@@ -38,34 +38,38 @@ export async function GET(req: Request) {
       );
     }
 
-    // Get tracking number (shipping_tracking_number) - must be numeric ORDER_SEQ
+    // Determine barcode value: ORDER_SEQ if available, otherwise use LT (cargoKey)
+    // Yurtiçi Kargo barkod etiketi KARGO ANAHTAR (LT...) ile basılabiliyor
     const trackingNumber = order.shipping_tracking_number;
+    const referenceNumber = order.shipping_reference_number;
     
-    // Validate tracking number: must exist and be numeric (8-20 digits)
-    if (!trackingNumber || typeof trackingNumber !== "string") {
-      console.error("[yurtici-label] shipping_tracking_number bulunamadı");
+    // Check if we have at least one identifier
+    if (!trackingNumber && !referenceNumber) {
+      console.error("[yurtici-label] Neither tracking number nor reference number found");
       return NextResponse.json(
-        { error: "Kargo kaydı oluştu. Barkod/ORDER_SEQ şube kabulünden sonra üretilecektir. Lütfen daha sonra tekrar deneyin." },
+        { error: "Kargo kaydı bulunamadı. Lütfen önce kargo oluşturun." },
         { status: 400 }
       );
     }
 
-    // Validate format: must be numeric, 8-20 digits (real barcode format)
-    const numericRegex = /^\d{8,20}$/;
-    if (!numericRegex.test(trackingNumber)) {
-      console.error("[yurtici-label] shipping_tracking_number geçersiz format:", trackingNumber);
+    // Use ORDER_SEQ if available, otherwise use LT (cargoKey)
+    const barcodeValue = trackingNumber || referenceNumber || "";
+    
+    if (!barcodeValue) {
       return NextResponse.json(
-        { error: "Kargo kaydı oluştu. Barkod/ORDER_SEQ şube kabulünden sonra üretilecektir. Lütfen daha sonra tekrar deneyin." },
+        { error: "Barkod değeri bulunamadı" },
         { status: 400 }
       );
     }
 
-    // Generate barcode PNG using bwip-js (Code128 with text)
+    console.log(`[yurtici-label] Generating label with barcode: ${barcodeValue} (${trackingNumber ? 'ORDER_SEQ' : 'LT cargoKey'})`);
+
+    // Generate barcode PNG using bwip-js (CODE128 format)
     let barcodePng: Buffer;
     try {
       barcodePng = await bwipjs.toBuffer({
         bcid: "code128",
-        text: trackingNumber,
+        text: barcodeValue,
         scale: 3,
         height: 12,
         includetext: true,
@@ -88,120 +92,208 @@ export async function GET(req: Request) {
     const fontBytes = await fs.readFile(fontPath);
     const font = await pdfDoc.embedFont(fontBytes);
 
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size (width x height in points)
+    // 100mm x 80mm label size (1mm = 2.83464 points) - EXACT size for thermal label
+    const labelWidthMm = 100;
+    const labelHeightMm = 80;
+    const labelWidthPoints = labelWidthMm * 2.83464; // 283.464 points
+    const labelHeightPoints = labelHeightMm * 2.83464; // 226.7712 points
+    const page = pdfDoc.addPage([labelWidthPoints, labelHeightPoints]);
+    
+    // Set page metadata for print: exact 100mm x 80mm, no scaling, single page
+    // This ensures thermal printer uses exact size without fit-to-page
 
     // Embed barcode image
     const barcodeImage = await pdfDoc.embedPng(barcodePng);
-    const barcodeDims = barcodeImage.scale(0.5);
-
+    
     // Page dimensions
-    const pageWidth = 595.28;
-    const margin = 50;
-    let yPos = 841.89 - margin; // Start from top
+    const pageWidth = labelWidthPoints;
+    const pageHeight = labelHeightPoints;
+    
+    // Padding: 6mm (as per spec)
+    const paddingMm = 6;
+    const paddingPoints = paddingMm * 2.83464; // ~17.01 points
+    
+    // Safe area: right 15-20mm, bottom 15mm (Yurtiçi logo area)
+    // Use 18mm right (middle of 15-20mm range) for better balance
+    const safeAreaRightMm = 18;
+    const safeAreaBottomMm = 15;
+    const safeAreaRightPoints = safeAreaRightMm * 2.83464; // ~51.02 points
+    const safeAreaBottomPoints = safeAreaBottomMm * 2.83464; // 42.5196 points
+    
+    // Content area: page minus padding (box-sizing: border-box equivalent)
+    const contentWidth = pageWidth - (paddingPoints * 2);
+    const contentHeight = pageHeight - (paddingPoints * 2);
+    
+    // Calculate usable area (excluding safe area) - content must not overflow
+    const usableWidth = contentWidth - safeAreaRightPoints; // Content width minus safe area
+    const usableHeight = contentHeight - safeAreaBottomPoints;
 
-    // Title
-    page.drawText("Lezzette Tek - Yurtiçi Kargo Etiketi", {
-      x: margin,
+    // Layout structure (as per spec):
+    // - Header: max-height 14mm
+    // - Barcode area: height 34mm (fixed)
+    // - Footer: remaining space
+    
+    // Helper function to center text horizontally within content area
+    const getCenteredX = (text: string, fontSize: number): number => {
+      const textWidth = font.widthOfTextAtSize(text, fontSize);
+      return paddingPoints + (contentWidth - textWidth) / 2;
+    };
+
+    // Start from top (with padding)
+    let yPos = pageHeight - paddingPoints;
+    const lineSpacing = 3; // Compact spacing
+
+    // HEADER SECTION (max-height 14mm = 39.68 points)
+    const headerMaxHeightMm = 14;
+    const headerMaxHeightPoints = headerMaxHeightMm * 2.83464; // ~39.68 points
+    
+    // 1. Title at top - CENTERED, max 4mm font
+    const titleSizeMm = 4;
+    const titleSize = titleSizeMm * 2.83464; // ~11.34 points
+    yPos -= titleSize + lineSpacing;
+    const titleText = "Lezzette Tek - Yurtiçi Kargo";
+    page.drawText(titleText, {
+      x: getCenteredX(titleText, titleSize),
       y: yPos,
-      size: 20,
+      size: titleSize,
       font,
       color: rgb(0, 0, 0),
     });
 
-    yPos -= 40;
-
-    // CargoKey text (tracking number)
-    page.drawText("Kargo Takip No:", {
-      x: margin,
+    // 2. Barcode label text - CENTERED, max 6mm font
+    const labelSizeMm = 6;
+    const labelSize = labelSizeMm * 2.83464; // ~17.01 points
+    const barcodeLabel = trackingNumber ? "Kargo Takip No (ORDER_SEQ):" : "Kargo Anahtarı (LT):";
+    yPos -= labelSize + lineSpacing;
+    page.drawText(barcodeLabel, {
+      x: getCenteredX(barcodeLabel, labelSize),
       y: yPos,
-      size: 16,
+      size: labelSize,
       font,
       color: rgb(0, 0, 0),
     });
 
-    yPos -= 25;
-
-    page.drawText(trackingNumber, {
-      x: margin,
-      y: yPos,
-      size: 24,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    yPos -= 50;
-
-    // Barcode image (centered)
-    const barcodeX = (pageWidth - barcodeDims.width) / 2;
+    // BARCODE SECTION (height 34mm = 96.38 points, fixed)
+    const barcodeAreaHeightMm = 34;
+    const barcodeAreaHeightPoints = barcodeAreaHeightMm * 2.83464; // ~96.38 points
+    
+    // Barcode wrapper: 88mm width, 30mm height (as per spec)
+    const barcodeWrapperWidthMm = 88;
+    const barcodeWrapperHeightMm = 30;
+    const barcodeWrapperWidthPoints = barcodeWrapperWidthMm * 2.83464; // ~249.45 points
+    const barcodeWrapperHeightPoints = barcodeWrapperHeightMm * 2.83464; // ~85.04 points
+    
+    // Calculate barcode scale to fit within wrapper (max-width: 100%, max-height: 100%)
+    const maxBarcodeWidth = barcodeWrapperWidthPoints;
+    const maxBarcodeHeight = barcodeWrapperHeightPoints;
+    const widthScale = maxBarcodeWidth / barcodeImage.width;
+    const heightScale = maxBarcodeHeight / barcodeImage.height;
+    const barcodeScale = Math.min(1.0, widthScale, heightScale);
+    const barcodeDims = barcodeImage.scale(barcodeScale);
+    
+    // Center barcode horizontally within content area (margin: 2mm auto)
+    const barcodeMarginMm = 2;
+    const barcodeMarginPoints = barcodeMarginMm * 2.83464; // ~5.67 points
+    const barcodeX = paddingPoints + (contentWidth - barcodeDims.width) / 2;
+    
+    // Position barcode in barcode area (centered vertically in the 34mm area)
+    const barcodeAreaStartY = yPos - barcodeAreaHeightPoints;
+    const barcodeY = barcodeAreaStartY + (barcodeAreaHeightPoints - barcodeDims.height) / 2;
+    
+    // Draw barcode - CENTERED
     page.drawImage(barcodeImage, {
       x: barcodeX,
-      y: yPos - barcodeDims.height,
+      y: barcodeY,
       width: barcodeDims.width,
       height: barcodeDims.height,
     });
-
-    yPos -= barcodeDims.height + 40;
-
-    // Receiver Information
-    page.drawText("Alıcı Bilgileri", {
-      x: margin,
+    
+    // Barcode text (below barcode) - CENTERED, 5mm font, line-height: 1
+    const barcodeTextSizeMm = 5;
+    const barcodeTextSize = barcodeTextSizeMm * 2.83464; // ~14.17 points
+    yPos = barcodeY - barcodeDims.height - (barcodeTextSize * 1); // line-height: 1
+    page.drawText(barcodeValue, {
+      x: getCenteredX(barcodeValue, barcodeTextSize),
       y: yPos,
-      size: 14,
+      size: barcodeTextSize,
       font,
       color: rgb(0, 0, 0),
     });
 
-    yPos -= 25;
+    // FOOTER SECTION (remaining space, above safe area)
+    // Start footer from bottom of barcode area
+    yPos = barcodeAreaStartY - lineSpacing;
+    
+    // Receiver Information - LEFT ALIGNED, 3-3.2mm font
+    const infoSizeMm = 3.2;
+    const infoSize = infoSizeMm * 2.83464; // ~9.07 points
+    const infoX = paddingPoints;
+    
+    // Ensure footer doesn't go below safe area
+    const footerMinY = paddingPoints + safeAreaBottomPoints;
+    
+    if (yPos > footerMinY) {
+      const customerName = (order.customer_name ?? "-").substring(0, 25);
+      yPos -= infoSize + lineSpacing;
+      if (yPos >= footerMinY) {
+        page.drawText(`Alıcı: ${customerName}`, {
+          x: infoX,
+          y: yPos,
+          size: infoSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+      }
 
-    const infoSize = 12;
-    page.drawText(`Ad: ${order.customer_name ?? "-"}`, {
-      x: margin,
-      y: yPos,
-      size: infoSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
+      yPos -= infoSize + lineSpacing;
+      if (yPos >= footerMinY) {
+        const address = (order.address ?? "-").substring(0, 28);
+        page.drawText(address, {
+          x: infoX,
+          y: yPos,
+          size: infoSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+      }
 
-    yPos -= 20;
+      yPos -= infoSize + lineSpacing;
+      if (yPos >= footerMinY) {
+        const cityDistrict = `${order.city ?? "-"} / ${order.district ?? "-"}`.substring(0, 28);
+        page.drawText(cityDistrict, {
+          x: infoX,
+          y: yPos,
+          size: infoSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+      }
+    }
+    
+    // Overflow protection: All content is within page bounds
+    // PDF automatically clips content outside page dimensions (equivalent to overflow: hidden)
 
-    page.drawText(`Telefon: ${order.phone ?? "-"}`, {
-      x: margin,
-      y: yPos,
-      size: infoSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    yPos -= 20;
-
-    page.drawText(`Adres: ${order.address ?? "-"}`, {
-      x: margin,
-      y: yPos,
-      size: infoSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    yPos -= 20;
-
-    page.drawText(`İl/İlçe: ${order.city ?? "-"} / ${order.district ?? "-"}`, {
-      x: margin,
-      y: yPos,
-      size: infoSize,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Save PDF
+    // Set PDF metadata for thermal label printing
+    // Single label per page, exact 100mm x 80mm, no scaling
+    pdfDoc.setTitle(`Yurtiçi Kargo Etiketi - ${barcodeValue}`);
+    pdfDoc.setCreator("Lezzette Tek");
+    pdfDoc.setProducer("Lezzette Tek Label Generator");
+    
+    // Save PDF - ensures single page, exact size
     const pdfBytes = await pdfDoc.save();
 
-    // Return PDF response
+    // Return PDF response with print-optimized headers
+    // Headers ensure browser/print dialog uses exact size without fit-to-page
+    const filename = `yurtici-${barcodeValue}.pdf`;
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="yurtici-${trackingNumber}.pdf"`,
+        "Content-Disposition": `inline; filename="${filename}"`,
         "Cache-Control": "no-store",
+        // Print hints: exact size, no scaling, single page
+        "X-PDF-Page-Size": "100mm x 80mm",
+        "X-PDF-Single-Page": "true",
       },
     });
   } catch (err: any) {

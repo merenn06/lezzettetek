@@ -3,6 +3,11 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import * as soap from "soap";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  YurticiOperationStatusCode,
+  YURTICI_OPERATION_STATUS_MAP,
+  normalizeYurticiQueryShipmentResponse,
+} from "@/lib/shipping/yurtici";
 
 export async function GET(req: Request) {
   try {
@@ -91,14 +96,14 @@ export async function GET(req: Request) {
       );
     }
 
-    // Call queryShipment
+    // Call queryShipment (ShippingOrderDispatcherServices)
     const soapPayload = {
       wsUserName: apiUser,
       wsPassword: apiPass,
       wsLanguage: userLanguage,
-      keys: [actualCargoKey],
       keyType: 0, // 0 = cargoKey, 1 = invoiceKey
-      addHistoricalData: false,
+      keys: [actualCargoKey],
+      addHistoricalData: true,
       onlyTracking: false,
     };
 
@@ -114,96 +119,52 @@ export async function GET(req: Request) {
       );
     }
 
-    // Debug: log raw response
-    console.log("[yurtici-query] queryShipment raw:", JSON.stringify(result, null, 2));
-    console.log("[yurtici-query] queryShipment raw keys:", Object.keys(result || {}));
+    const normalized = normalizeYurticiQueryShipmentResponse(result, actualCargoKey);
 
-    // Robust parsing: queryShipment response bazen farklı wrapper'larla gelir
-    const raw = result;
+    // Compact debug log without PII
+    console.log(
+      "[yurtici-query]",
+      JSON.stringify(
+        {
+          cargoKey: normalized.cargoKey,
+          statusCode: normalized.operationStatusCode,
+          reasonId: normalized.reasonId,
+          hasProblemReason: normalized.hasProblemReason,
+          eventsCount: normalized.events.length,
+        },
+        null,
+        0
+      )
+    );
 
-    // Extract vo from different wrapper possibilities
-    const vo =
-      raw?.queryShipmentReturn ??
-      raw?.queryShipmentResponse?.queryShipmentReturn ??
-      raw?.queryShipmentResult?.queryShipmentReturn ??
-      raw?.return?.queryShipmentReturn ??
-      raw?.result?.queryShipmentReturn ??
-      raw; // Fallback: use raw itself if it has outFlag
-
-    if (!vo) {
-      console.error("[yurtici-query] Missing queryShipmentReturn:", raw);
-      return NextResponse.json(
-        { ok: false, error: "Yurtiçi yanıtı çözümlenemedi (queryShipmentReturn yok)" },
-        { status: 502 }
-      );
-    }
-
-    console.log("[yurtici-query] vo keys:", Object.keys(vo || {}));
-    console.log("[yurtici-query] vo.outFlag:", vo.outFlag, "vo.outResult:", vo.outResult);
-
-    // Extract outFlag and outResult from vo
-    const outFlag = String(vo.outFlag ?? "");
-    const outResult = String(vo.outResult ?? "");
-
-    // Check for errors
-    if (outFlag !== "0") {
-      const errorMsg = outResult || "Bilinmeyen hata";
-      console.error("[yurtici-query] queryShipment failed - outFlag:", outFlag, "outResult:", outResult);
-      console.error("[yurtici-query] queryShipment failed raw:", JSON.stringify(raw, null, 2));
-      return NextResponse.json(
-        { ok: false, error: `Yurtiçi hata: ${errorMsg}` },
-        { status: 502 }
-      );
-    }
-
-    // Extract shippingDeliveryDetailVO from different variations
-    const shippingDetailsRaw =
-      vo?.shippingDeliveryDetailVO ??
-      vo?.shippingDeliveryDetailVo ??
-      vo?.shippingDeliveryDetailVos ??
-      vo?.shippingDeliveryDetailVO?.shippingDeliveryDetailVO ??
-      raw?.shippingDeliveryDetailVO ??
-      raw?.shippingDeliveryDetailVo ??
-      raw?.shippingDeliveryDetailVos ??
-      [];
-
-    const shippingDetails = Array.isArray(shippingDetailsRaw)
-      ? shippingDetailsRaw
-      : shippingDetailsRaw
-        ? [shippingDetailsRaw]
-        : [];
-
-    if (!Array.isArray(shippingDetails) || shippingDetails.length === 0) {
-      return NextResponse.json(
-        { ok: true, cargoKey: actualCargoKey, status: "unknown", message: "Kargo bilgisi bulunamadı" },
-        { status: 200 }
-      );
-    }
-
-    const detail = shippingDetails[0];
-    const operationStatus = detail.operationStatus || "";
-
-    // Extract tracking/barcode number from detail if available
-    const trackingNumber = 
-      detail?.barcode ||
-      detail?.barcodeNo ||
-      detail?.shipmentNo ||
-      detail?.shipmentNumber ||
-      detail?.trackingNo ||
-      detail?.trackingNumber ||
-      detail?.waybillNo ||
-      detail?.awbNo ||
+    // Extract tracking/barcode number from raw detail if available
+    const d = normalized.rawDetail || {};
+    const trackingNumber =
+      d?.barcode ||
+      d?.barcodeNo ||
+      d?.shipmentNo ||
+      d?.shipmentNumber ||
+      d?.trackingNo ||
+      d?.trackingNumber ||
+      d?.waybillNo ||
+      d?.awbNo ||
       null;
 
     // Update order based on operation status
     if (orderId) {
       const updateData: any = {};
+      const statusCode = normalized.operationStatusCode;
+      const info = normalized.operationStatusInfo;
 
-      if (operationStatus === "DLV") {
+      if (statusCode === "DLV") {
         updateData.shipping_status = "delivered";
         updateData.delivered_at = new Date().toISOString();
-      } else {
+      } else if (statusCode === "CNL" || statusCode === "ISC" || statusCode === "BI") {
+        updateData.shipping_status = "canceled";
+      } else if (statusCode === "IND" || statusCode === "ISR") {
         updateData.shipping_status = "in_transit";
+      } else if (statusCode === "NOP") {
+        updateData.shipping_status = "created_pending_pickup";
       }
 
       // Update tracking number if found
@@ -224,13 +185,37 @@ export async function GET(req: Request) {
       }
     }
 
+    const statusCode = normalized.operationStatusCode;
+    const info = normalized.operationStatusInfo;
+
+    // Build user-facing message
+    let userMessage: string;
+    if (statusCode === "DLV") {
+      userMessage = "Kargo teslim edildi.";
+    } else if (info) {
+      userMessage = `Kargo durumu: ${info.name}`;
+    } else {
+      userMessage = "Kargo durumu alınamadı.";
+    }
+
+    // Include reasonDesc if present
+    if (normalized.reasonDesc) {
+      userMessage += ` - ${normalized.reasonDesc}`;
+    }
+
     return NextResponse.json(
       {
         ok: true,
         cargoKey: actualCargoKey,
-        status: operationStatus,
-        detail,
-        message: operationStatus === "DLV" ? "Kargo teslim edildi" : `Kargo durumu: ${operationStatus}`,
+        statusCode,
+        statusInfo: info,
+        reasonId: normalized.reasonId,
+        reasonDesc: normalized.reasonDesc,
+        hasProblemReason: normalized.hasProblemReason,
+        cargoEventExplanation: normalized.cargoEventExplanation,
+        events: normalized.events,
+        rawDetail: normalized.rawDetail,
+        message: userMessage,
       },
       { status: 200 }
     );

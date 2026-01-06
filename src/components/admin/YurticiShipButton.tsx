@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Order } from '@/types/orders';
+import { canCreateShipment } from '@/lib/shipping/canCreateShipment';
 
 interface YurticiShipButtonProps {
   orderId: string;
   existingTracking?: string | null;
+  order?: Order | null;
 }
 
 export default function YurticiShipButton({
   orderId,
   existingTracking,
+  order,
 }: YurticiShipButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,14 @@ export default function YurticiShipButton({
   const [trackingNumber, setTrackingNumber] = useState<string | null>(
     existingTracking || null
   );
+
+  // Update tracking number when order prop changes (e.g., after refresh)
+  useEffect(() => {
+    const currentTracking = order?.shipping_tracking_number || existingTracking || null;
+    if (currentTracking && currentTracking !== trackingNumber) {
+      setTrackingNumber(currentTracking);
+    }
+  }, [order?.shipping_tracking_number, existingTracking, trackingNumber]);
 
   const handleCreateShipment = async () => {
     if (trackingNumber) {
@@ -42,15 +54,33 @@ export default function YurticiShipButton({
       const result = await response.json();
 
       if (!response.ok || !result.ok) {
+        // Special handling for error code 82512
+        if (result.errorCode === 82512 || result.errorType === 'contract_restriction') {
+          throw new Error('Kontratınız kredi kartı tahsilat olarak tanımlı, nakit seçilemez');
+        }
         throw new Error(result.error || 'Kargo oluşturulurken bir hata oluştu');
       }
 
-      setTrackingNumber(result.trackingNumber);
+      // Update tracking number if available
+      if (result.trackingNumber) {
+        setTrackingNumber(result.trackingNumber);
+      }
+
+      // Build success message based on tracking number availability
+      let successMessage: string;
+      if (result.trackingNumber) {
+        successMessage = result.reused
+          ? `Kargo zaten sistemde mevcut. Takip No: ${result.trackingNumber}`
+          : `Kargo başarıyla oluşturuldu! Takip No: ${result.trackingNumber}`;
+      } else {
+        successMessage = result.reused
+          ? `Kargo zaten sistemde mevcut. Takip No: (Barkod yenile sonrası oluşacak)`
+          : `Kargo başarıyla oluşturuldu! Takip No: (Barkod yenile sonrası oluşacak)`;
+      }
+
       setMessage({
         type: 'success',
-        text: result.reused
-          ? `Kargo zaten sistemde mevcut. Takip No: ${result.trackingNumber}`
-          : `Kargo başarıyla oluşturuldu! Takip No: ${result.trackingNumber}`,
+        text: successMessage,
       });
 
       // Refresh server data
@@ -82,12 +112,16 @@ export default function YurticiShipButton({
     );
   }
 
+  // Check if shipment can be created
+  const canCreate = order ? canCreateShipment(order) : true; // Default to true if order not provided (for backward compatibility)
+
   return (
     <div className="space-y-2">
       <button
         onClick={handleCreateShipment}
-        disabled={loading}
+        disabled={loading || !canCreate}
         className="px-4 py-2 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title={!canCreate ? 'Bu sipariş için kargo oluşturulamaz. Ödeme durumu veya sipariş durumu uygun değil.' : undefined}
       >
         {loading ? 'Kargo Oluşturuluyor...' : 'Kargoya Ver'}
       </button>

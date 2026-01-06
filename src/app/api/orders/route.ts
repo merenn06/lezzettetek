@@ -14,7 +14,8 @@ type CheckoutRequestBody = {
   city: string;
   district: string;
   note?: string | null;
-  payment_method: "havale" | "kapida" | "iyzico";
+  payment_method: "havale" | "kapida" | "iyzico" | "cod";
+  shipping_payment_type?: "cash" | "card" | null; // COD tahsilat tipi (nakit/kart)
   items: Array<{
     product_id: string;
     product_name: string;
@@ -70,9 +71,9 @@ function validateRequest(body: any): asserts body is CheckoutRequestBody {
     }
   }
 
-  if (body.payment_method !== "havale" && body.payment_method !== "kapida" && body.payment_method !== "iyzico") {
+  if (body.payment_method !== "havale" && body.payment_method !== "kapida" && body.payment_method !== "iyzico" && body.payment_method !== "cod") {
     throw new Error(
-      "Geçersiz payment_method. Sadece 'havale', 'kapida' veya 'iyzico' olabilir."
+      "Geçersiz payment_method. Sadece 'havale', 'kapida', 'iyzico' veya 'cod' olabilir."
     );
   }
 }
@@ -92,8 +93,19 @@ export async function POST(req: Request) {
       district,
       note = null,
       payment_method,
+      shipping_payment_type: rawShippingPaymentType = null,
       items,
     } = body as CheckoutRequestBody;
+
+    // Validate and normalize shipping_payment_type
+    // Only allow "cash" or "card", default to null for non-COD orders
+    let shipping_payment_type: "cash" | "card" | null = null;
+    if (rawShippingPaymentType === "cash" || rawShippingPaymentType === "card") {
+      shipping_payment_type = rawShippingPaymentType;
+    } else if (rawShippingPaymentType !== null && rawShippingPaymentType !== undefined) {
+      // Invalid value, log warning but don't fail
+      console.warn(`[orders-api] Invalid shipping_payment_type: ${rawShippingPaymentType}, defaulting to null`);
+    }
 
     const mappedItems: OrderItemInput[] = items.map((item) => ({
       product_id: item.product_id,
@@ -111,6 +123,7 @@ export async function POST(req: Request) {
       district,
       note,
       payment_method,
+      shipping_payment_type, // COD tahsilat tipi (cash/card)
     };
 
     const { orderId } = await createOrderWithItems(orderData, mappedItems);
