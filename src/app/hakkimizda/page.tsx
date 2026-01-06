@@ -1,4 +1,8 @@
+'use client';
+
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import LegalDocumentsModal from '@/components/LegalDocumentsModal';
 
 export default function Hakkimizda() {
   const milestones = [
@@ -136,6 +140,40 @@ export default function Hakkimizda() {
                 yıllar boyunca yer almayı hedefliyoruz.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Legal & Registered Production Section */}
+      <section className="py-24 px-4 bg-gradient-to-br from-green-50 to-gray-50">
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-white rounded-xl p-8 md:p-10 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-3xl">🛡️</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Yasal & Kayıtlı Üretim</h2>
+            </div>
+            
+            <p className="text-gray-700 leading-relaxed mb-6 text-lg">
+              Lezzette Tek, Tarım ve Orman Bakanlığı'na kayıtlı bir işletme olarak,
+              gıda güvenliği ve ilgili mevzuatlara uygun şekilde üretim yapmaktadır.
+            </p>
+
+            <div className="space-y-3 mb-8">
+              <div className="flex items-start gap-3">
+                <span className="text-green-700 text-xl mt-1">✔</span>
+                <p className="text-gray-700 leading-relaxed">
+                  <strong className="text-gray-900">İşletme Kayıt Belgesi No:</strong> TR-34-K-037314
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-green-700 text-xl mt-1">✔</span>
+                <p className="text-gray-700 leading-relaxed">
+                  <strong className="text-gray-900">Belediye Çalışma Ruhsatı Mevcuttur</strong>
+                </p>
+              </div>
+            </div>
+
+            <LegalDocumentsModal />
           </div>
         </div>
       </section>
