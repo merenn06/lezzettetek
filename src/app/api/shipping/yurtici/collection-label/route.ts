@@ -499,8 +499,13 @@ export async function GET(req: Request) {
     // Generate PDF bytes - ensures single page, exact size
     const pdfBytes = await pdfDoc.save();
 
+    // Convert Uint8Array to Buffer for NextResponse compatibility
+    // pdfDoc.save() returns Uint8Array, but NextResponse expects BodyInit (Buffer/ArrayBuffer)
+    const pdfBuffer = Buffer.from(pdfBytes);
+
     // Return PDF with print-optimized headers
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(pdfBuffer, {
+      status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="yurtici-tahsilat-${documentId}.pdf"`,
