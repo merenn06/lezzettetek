@@ -6,3 +6,4 @@ WHERE payment_method IN ('kapida', 'cod')
   AND payment_status IS NULL;
 
 
+

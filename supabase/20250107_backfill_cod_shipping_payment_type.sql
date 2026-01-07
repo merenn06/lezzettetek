@@ -8,3 +8,4 @@ WHERE payment_method IN ('kapida', 'cod')
   AND (shipping_payment_type IS NULL OR shipping_payment_type != 'card');
 
 
+

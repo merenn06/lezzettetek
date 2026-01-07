@@ -9,3 +9,4 @@ ADD COLUMN IF NOT EXISTS shipping_error_message text;
 
 
 
+

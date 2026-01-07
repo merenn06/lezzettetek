@@ -21,6 +21,7 @@ export function formatProductContentReact(content: string): React.ReactNode {
     { pattern: /Net Ağırlık:/g, name: 'Net Ağırlık:', newLine: true },
     { pattern: /Süzme Ağırlık:/g, name: 'Süzme Ağırlık:', newLine: true },
     { pattern: /Adet \(yaklaşık\):/g, name: 'Adet (yaklaşık):', newLine: true },
+    { pattern: /Kavanoz Hacmi:/g, name: 'Kavanoz Hacmi:', newLine: true },
   ];
 
   const matches: Array<{ index: number; name: string; newLine: boolean }> = [];
