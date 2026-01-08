@@ -50,6 +50,21 @@ export default function Hakkimizda() {
       {/* Story Section - Two Column */}
       <section className="py-24 px-4 bg-white">
         <div className="container mx-auto">
+          {/* YouTube Video */}
+          <div className="mb-12 flex justify-center">
+            <div className="w-full max-w-[900px]">
+              <div className="relative aspect-video rounded-xl overflow-hidden shadow-lg">
+                <iframe
+                  src="https://www.youtube.com/embed/5sBXGb7iHVQ?rel=0&modestbranding=1"
+                  title="Lezzette Tek Hakkında Video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Story Text */}
             <div className="space-y-6">
