@@ -58,15 +58,12 @@ export default function PrintCollectionLabelButton({
       if (contentType?.includes('application/pdf')) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const windowRef = window.open(url, '_blank');
-        if (windowRef) {
-          windowRef.onload = () => {
-            windowRef.print();
-          };
-        }
+        // Open PDF in a new tab; DO NOT auto-trigger print.
+        // Auto print can force browser default paper size (often A4) and scale/center the label.
+        window.open(url, '_blank', 'noopener,noreferrer');
         setMessage({
           type: 'info',
-          text: 'Tahsilat etiketi hazır.',
+          text: 'Tahsilat etiketi PDF açıldı. Yazdırırken %100 / Actual size seçin (A4 fit kapalı).',
         });
         setTimeout(() => {
           window.URL.revokeObjectURL(url);

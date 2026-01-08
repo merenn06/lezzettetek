@@ -641,9 +641,9 @@ export default function CheckoutPage() {
                       className="mt-1 mr-3 w-4 h-4 text-green-700 focus:ring-green-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">Kapıda Ödeme (Kredi Kartı)</span>
+                      <span className="font-medium text-gray-900">Kapıda Ödeme (Nakit/Kredi Kartı)</span>
                       <p className="text-sm text-gray-500 mt-1">
-                        Ödemenizi teslimat sırasında kargo görevlisine kredi kartı ile yapabilirsiniz. (Kontrat gereği sadece kredi kartı kabul edilmektedir)
+                        Ödemenizi teslimat sırasında kargo görevlisine kredi kartı veya nakit ile yapabilirsiniz. 
                       </p>
                     </div>
                   </label>

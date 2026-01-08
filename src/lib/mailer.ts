@@ -1,5 +1,20 @@
 import nodemailer from 'nodemailer';
 
+function getAdminNotifyEmails(): string[] {
+  // Comma-separated allowed
+  const orderNotify = process.env.ORDER_NOTIFY_EMAIL || '';
+  const adminEmail = process.env.ADMIN_EMAIL || '';
+  // Fallback: reuse contact notify email if defined
+  const contactNotify = process.env.CONTACT_NOTIFY_EMAIL || '';
+  const all = [orderNotify, adminEmail, contactNotify]
+    .filter(Boolean)
+    .flatMap((val) => val.split(','))
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  // Remove duplicates
+  return Array.from(new Set(all));
+}
+
 interface SendOrderStatusEmailParams {
   to: string;
   orderId: string;
@@ -88,6 +103,11 @@ Bu e-posta otomatik olarak gönderilmiştir.
   await transporter.sendMail({
     from: mailFrom,
     to,
+    // Also copy admins if configured
+    bcc: (() => {
+      const admins = getAdminNotifyEmails();
+      return admins.length ? admins.join(',') : undefined;
+    })(),
     subject,
     text: textBody,
     html: htmlBody,
@@ -208,6 +228,11 @@ Bu e-posta otomatik olarak gönderilmiştir.
   await transporter.sendMail({
     from: mailFrom,
     to,
+    // Also copy admins if configured
+    bcc: (() => {
+      const admins = getAdminNotifyEmails();
+      return admins.length ? admins.join(',') : undefined;
+    })(),
     subject,
     text: textBody,
     html: htmlBody,

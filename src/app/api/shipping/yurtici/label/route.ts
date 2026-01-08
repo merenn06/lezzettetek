@@ -92,15 +92,24 @@ export async function GET(req: Request) {
     const fontBytes = await fs.readFile(fontPath);
     const font = await pdfDoc.embedFont(fontBytes);
 
-    // 100mm x 80mm label size (1mm = 2.83464 points) - EXACT size for thermal label
+    // Helper: mm to points conversion (1 inch = 25.4mm = 72 points)
+    const mmToPt = (mm: number) => (mm * 72) / 25.4;
+
+    // Label page size MUST match printer paper size (NO A4 fallback)
+    // Required: 100mm x 150mm, margin: 0
     const labelWidthMm = 100;
-    const labelHeightMm = 80;
-    const labelWidthPoints = labelWidthMm * 2.83464; // 283.464 points
-    const labelHeightPoints = labelHeightMm * 2.83464; // 226.7712 points
+    const labelHeightMm = 150;
+    const labelWidthPoints = mmToPt(labelWidthMm); // ~283.46 points
+    const labelHeightPoints = mmToPt(labelHeightMm); // ~425.20 points
+    
     const page = pdfDoc.addPage([labelWidthPoints, labelHeightPoints]);
     
-    // Set page metadata for print: exact 100mm x 80mm, no scaling, single page
-    // This ensures thermal printer uses exact size without fit-to-page
+    // Set exact page size using pdf-lib API (ensures all boxes match)
+    page.setSize(labelWidthPoints, labelHeightPoints);
+    
+    // Verify page dimensions before rendering
+    const pageSize = page.getSize();
+    console.log(`[yurtici-label] PDF page size: ${pageSize.width.toFixed(2)} x ${pageSize.height.toFixed(2)} points (${labelWidthMm}mm x ${labelHeightMm}mm)`);
 
     // Embed barcode image
     const barcodeImage = await pdfDoc.embedPng(barcodePng);
@@ -109,12 +118,17 @@ export async function GET(req: Request) {
     const pageWidth = labelWidthPoints;
     const pageHeight = labelHeightPoints;
     
+    // Global offset to avoid printer clipping (shift content left and up)
+    const offsetXmm = -5; // 5mm left (negative = left shift)
+    const offsetYmm = 6;  // 6mm up (positive = up shift)
+    const offsetXpoints = mmToPt(offsetXmm);
+    const offsetYpoints = mmToPt(offsetYmm);
+    
     // Padding: 6mm (as per spec)
     const paddingMm = 6;
     const paddingPoints = paddingMm * 2.83464; // ~17.01 points
     
     // Safe area: right 15-20mm, bottom 15mm (Yurtiçi logo area)
-    // Use 18mm right (middle of 15-20mm range) for better balance
     const safeAreaRightMm = 18;
     const safeAreaBottomMm = 15;
     const safeAreaRightPoints = safeAreaRightMm * 2.83464; // ~51.02 points
@@ -133,14 +147,14 @@ export async function GET(req: Request) {
     // - Barcode area: height 34mm (fixed)
     // - Footer: remaining space
     
-    // Helper function to center text horizontally within content area
+    // Helper function to center text horizontally within content area (with offset)
     const getCenteredX = (text: string, fontSize: number): number => {
       const textWidth = font.widthOfTextAtSize(text, fontSize);
-      return paddingPoints + (contentWidth - textWidth) / 2;
+      return paddingPoints + (contentWidth - textWidth) / 2 + offsetXpoints;
     };
 
-    // Start from top (with padding)
-    let yPos = pageHeight - paddingPoints;
+    // Start from top (with padding + offset)
+    let yPos = pageHeight - paddingPoints + offsetYpoints;
     const lineSpacing = 3; // Compact spacing
 
     // HEADER SECTION (max-height 14mm = 39.68 points)
@@ -173,32 +187,43 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // BARCODE SECTION (height 34mm = 96.38 points, fixed)
+    // BARCODE SECTION (height 34mm, fixed)
     const barcodeAreaHeightMm = 34;
     const barcodeAreaHeightPoints = barcodeAreaHeightMm * 2.83464; // ~96.38 points
     
-    // Barcode wrapper: 88mm width, 30mm height (as per spec)
+    // Barcode wrapper: 88mm width, 30mm height (as per original spec)
     const barcodeWrapperWidthMm = 88;
     const barcodeWrapperHeightMm = 30;
     const barcodeWrapperWidthPoints = barcodeWrapperWidthMm * 2.83464; // ~249.45 points
     const barcodeWrapperHeightPoints = barcodeWrapperHeightMm * 2.83464; // ~85.04 points
     
-    // Calculate barcode scale to fit within wrapper (max-width: 100%, max-height: 100%)
+    // Barcode text (below barcode) - CENTERED, 5mm font, line-height: 1
+    // IMPORTANT: Keep barcode image + text INSIDE the 34mm barcode area
+    const barcodeTextSizeMm = 5;
+    const barcodeTextSize = barcodeTextSizeMm * 2.83464; // ~14.17 points
+
+    // Calculate barcode scale to fit within wrapper AND within remaining height of the barcode area
     const maxBarcodeWidth = barcodeWrapperWidthPoints;
-    const maxBarcodeHeight = barcodeWrapperHeightPoints;
+    const maxBarcodeHeight = Math.min(
+      barcodeWrapperHeightPoints,
+      barcodeAreaHeightPoints - barcodeTextSize - lineSpacing * 2
+    );
     const widthScale = maxBarcodeWidth / barcodeImage.width;
     const heightScale = maxBarcodeHeight / barcodeImage.height;
     const barcodeScale = Math.min(1.0, widthScale, heightScale);
     const barcodeDims = barcodeImage.scale(barcodeScale);
     
-    // Center barcode horizontally within content area (margin: 2mm auto)
+    // Center barcode horizontally within content area (margin: 2mm auto) + offset
     const barcodeMarginMm = 2;
     const barcodeMarginPoints = barcodeMarginMm * 2.83464; // ~5.67 points
-    const barcodeX = paddingPoints + (contentWidth - barcodeDims.width) / 2;
+    const barcodeX = paddingPoints + (contentWidth - barcodeDims.width) / 2 + offsetXpoints;
     
-    // Position barcode in barcode area (centered vertically in the 34mm area)
+    // Position barcode + text in barcode area (centered as a group)
     const barcodeAreaStartY = yPos - barcodeAreaHeightPoints;
-    const barcodeY = barcodeAreaStartY + (barcodeAreaHeightPoints - barcodeDims.height) / 2;
+    const groupHeight = barcodeDims.height + barcodeTextSize + lineSpacing;
+    const groupStartY = barcodeAreaStartY + (barcodeAreaHeightPoints - groupHeight) / 2;
+    const textY = groupStartY;
+    const barcodeY = textY + barcodeTextSize + lineSpacing;
     
     // Draw barcode - CENTERED
     page.drawImage(barcodeImage, {
@@ -208,13 +233,9 @@ export async function GET(req: Request) {
       height: barcodeDims.height,
     });
     
-    // Barcode text (below barcode) - CENTERED, 5mm font, line-height: 1
-    const barcodeTextSizeMm = 5;
-    const barcodeTextSize = barcodeTextSizeMm * 2.83464; // ~14.17 points
-    yPos = barcodeY - barcodeDims.height - (barcodeTextSize * 1); // line-height: 1
     page.drawText(barcodeValue, {
       x: getCenteredX(barcodeValue, barcodeTextSize),
-      y: yPos,
+      y: textY,
       size: barcodeTextSize,
       font,
       color: rgb(0, 0, 0),
@@ -224,10 +245,10 @@ export async function GET(req: Request) {
     // Start footer from bottom of barcode area
     yPos = barcodeAreaStartY - lineSpacing;
     
-    // Receiver Information - LEFT ALIGNED, 3-3.2mm font
+    // Receiver Information - LEFT ALIGNED, 3-3.2mm font (with offset)
     const infoSizeMm = 3.2;
     const infoSize = infoSizeMm * 2.83464; // ~9.07 points
-    const infoX = paddingPoints;
+    const infoX = paddingPoints + offsetXpoints;
     
     // Ensure footer doesn't go below safe area
     const footerMinY = paddingPoints + safeAreaBottomPoints;
@@ -292,7 +313,7 @@ export async function GET(req: Request) {
         "Content-Disposition": `inline; filename="${filename}"`,
         "Cache-Control": "no-store",
         // Print hints: exact size, no scaling, single page
-        "X-PDF-Page-Size": "100mm x 80mm",
+        "X-PDF-Page-Size": "100mm x 150mm",
         "X-PDF-Single-Page": "true",
       },
     });
