@@ -119,13 +119,13 @@ export async function GET(req: Request) {
     const pageHeight = labelHeightPoints;
     
     // Global offset to avoid printer clipping (shift content left and up)
-    const offsetXmm = -5; // 5mm left (negative = left shift, increased)
-    const offsetYmm = 3;  // 3mm up (positive = up shift)
+    const offsetXmm = -3; // 3mm left (negative = left shift, balanced)
+    const offsetYmm = 2;  // 2mm up (positive = up shift, reduced)
     const offsetXpoints = mmToPt(offsetXmm);
     const offsetYpoints = mmToPt(offsetYmm);
     
-    // Padding: 2mm (minimal for 60x80mm label to maximize content area)
-    const paddingMm = 2;
+    // Padding: 3mm (balanced for 100x80mm label)
+    const paddingMm = 3;
     const paddingPoints = mmToPt(paddingMm);
     
     // Safe area: right 8mm, bottom 6mm (Yurtiçi logo area, minimized for smaller label)
@@ -143,9 +143,9 @@ export async function GET(req: Request) {
     const usableHeight = contentHeight - safeAreaBottomPoints;
 
     // Layout structure (adjusted for 100x80mm landscape - yatay):
-    // - Header: max-height 8mm (balanced)
-    // - Barcode area: height 32mm (balanced)
-    // - Footer: remaining space (at least 35mm for address info)
+    // - Header: max-height 7mm (reduced to save space)
+    // - Barcode area: height 28mm (reduced)
+    // - Footer: remaining space (at least 42mm for address info)
     
     // Helper function to center text horizontally within content area (with offset)
     const getCenteredX = (text: string, fontSize: number): number => {
@@ -155,14 +155,14 @@ export async function GET(req: Request) {
 
     // Start from top (with padding + offset)
     let yPos = pageHeight - paddingPoints + offsetYpoints;
-    const lineSpacing = 2.5; // Compact spacing
+    const lineSpacing = 2; // Reduced spacing to save vertical space
 
-    // HEADER SECTION (max-height 8mm, balanced for 100x80mm)
-    const headerMaxHeightMm = 8;
+    // HEADER SECTION (max-height 7mm, reduced to save space)
+    const headerMaxHeightMm = 7;
     const headerMaxHeightPoints = mmToPt(headerMaxHeightMm);
     
-    // 1. Title at top - CENTERED, 4mm font
-    const titleSizeMm = 4;
+    // 1. Title at top - CENTERED, 3.5mm font (reduced)
+    const titleSizeMm = 3.5;
     const titleSize = mmToPt(titleSizeMm);
     yPos -= titleSize + lineSpacing;
     const titleText = "Lezzette Tek - Yurtiçi Kargo";
@@ -174,8 +174,8 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // 2. Barcode label text - CENTERED, 4.5mm font
-    const labelSizeMm = 4.5;
+    // 2. Barcode label text - CENTERED, 3.5mm font (reduced)
+    const labelSizeMm = 3.5;
     const labelSize = mmToPt(labelSizeMm);
     const barcodeLabel = trackingNumber ? "Kargo Takip No:" : "Kargo Anahtarı (LT):";
     yPos -= labelSize + lineSpacing;
@@ -187,18 +187,18 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // BARCODE SECTION (height 32mm, balanced for 100x80mm landscape)
-    const barcodeAreaHeightMm = 32;
+    // BARCODE SECTION (height 28mm, reduced to save space for footer)
+    const barcodeAreaHeightMm = 28;
     const barcodeAreaHeightPoints = mmToPt(barcodeAreaHeightMm);
     
-    // Barcode wrapper: use available width minus safe area, max 28mm height
+    // Barcode wrapper: use available width minus safe area, max 24mm height
     const barcodeWrapperWidthMm = labelWidthMm - (paddingMm * 2) - safeAreaRightMm;
-    const barcodeWrapperHeightMm = 28;
+    const barcodeWrapperHeightMm = 24;
     const barcodeWrapperWidthPoints = mmToPt(barcodeWrapperWidthMm);
     const barcodeWrapperHeightPoints = mmToPt(barcodeWrapperHeightMm);
     
-    // Barcode text (below barcode) - CENTERED, 6mm font
-    const barcodeTextSizeMm = 6;
+    // Barcode text (below barcode) - CENTERED, 5mm font (reduced)
+    const barcodeTextSizeMm = 5;
     const barcodeTextSize = mmToPt(barcodeTextSizeMm);
 
     // Calculate barcode scale to fit within wrapper AND within remaining height of the barcode area
@@ -242,18 +242,56 @@ export async function GET(req: Request) {
     // Start footer from bottom of barcode area
     yPos = barcodeAreaStartY - lineSpacing;
     
-    // Receiver Information - LEFT ALIGNED, 4mm font (increased for better readability on larger label)
-    const infoSizeMm = 4;
+    // Receiver Information - LEFT ALIGNED, 3.5mm font (reduced to fit better)
+    const infoSizeMm = 3.5;
     const infoSize = mmToPt(infoSizeMm);
     const infoX = paddingPoints + offsetXpoints;
     
     // Ensure footer doesn't go below safe area
     const footerMinY = paddingPoints + safeAreaBottomPoints;
     
+    // Helper function to split long text into multiple lines that fit within maxWidth
+    const splitTextToLines = (text: string, maxWidth: number, fontSize: number): string[] => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+        
+        if (testWidth <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            // Single word is too long, truncate it
+            let truncated = word;
+            while (font.widthOfTextAtSize(truncated, fontSize) > maxWidth && truncated.length > 1) {
+              truncated = truncated.substring(0, truncated.length - 1);
+            }
+            lines.push(truncated);
+            currentLine = '';
+          }
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      return lines.length > 0 ? lines : [''];
+    };
+
+    // Calculate max width for address text (content width minus safe area)
+    const maxAddressWidth = contentWidth - safeAreaRightPoints;
+
     // Always draw address info if space available
     if (yPos > footerMinY) {
-      // Customer name (truncate if too long, 100mm width allows ~35 chars)
-      const customerName = (order.customer_name ?? "-").substring(0, 35);
+      // Customer name (max 38 chars for 100mm width)
+      const customerName = (order.customer_name ?? "-").substring(0, 38);
       yPos -= infoSize + lineSpacing;
       if (yPos >= footerMinY) {
         page.drawText(`Alıcı: ${customerName}`, {
@@ -265,23 +303,30 @@ export async function GET(req: Request) {
         });
       }
 
-      // Address line 1 (100mm width allows ~40 chars)
-      yPos -= infoSize + lineSpacing;
-      if (yPos >= footerMinY) {
-        const address = (order.address ?? "-").substring(0, 40);
-        page.drawText(address, {
-          x: infoX,
-          y: yPos,
-          size: infoSize,
-          font,
-          color: rgb(0, 0, 0),
-        });
+      // Address - split into multiple lines if needed (max 38 chars per line)
+      const address = order.address ?? "-";
+      const addressLines = splitTextToLines(address, maxAddressWidth, infoSize);
+      
+      // Draw address lines (max 2 lines to save space)
+      for (let i = 0; i < Math.min(2, addressLines.length); i++) {
+        yPos -= infoSize + lineSpacing;
+        if (yPos >= footerMinY) {
+          page.drawText(addressLines[i], {
+            x: infoX,
+            y: yPos,
+            size: infoSize,
+            font,
+            color: rgb(0, 0, 0),
+          });
+        } else {
+          break;
+        }
       }
 
-      // City / District (100mm width allows ~40 chars)
+      // City / District (max 38 chars)
       yPos -= infoSize + lineSpacing;
       if (yPos >= footerMinY) {
-        const cityDistrict = `${order.city ?? "-"} / ${order.district ?? "-"}`.substring(0, 40);
+        const cityDistrict = `${order.city ?? "-"} / ${order.district ?? "-"}`.substring(0, 38);
         page.drawText(cityDistrict, {
           x: infoX,
           y: yPos,
@@ -295,7 +340,7 @@ export async function GET(req: Request) {
       if (order.phone) {
         yPos -= infoSize + lineSpacing;
         if (yPos >= footerMinY) {
-          const phone = (order.phone ?? "").substring(0, 40);
+          const phone = (order.phone ?? "").substring(0, 38);
           page.drawText(`Tel: ${phone}`, {
             x: infoX,
             y: yPos,
