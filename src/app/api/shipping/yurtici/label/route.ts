@@ -119,7 +119,7 @@ export async function GET(req: Request) {
     const pageHeight = labelHeightPoints;
     
     // Global offset to avoid printer clipping (shift content left and up)
-    const offsetXmm = -2; // 2mm left (negative = left shift)
+    const offsetXmm = -5; // 5mm left (negative = left shift, increased)
     const offsetYmm = 3;  // 3mm up (positive = up shift)
     const offsetXpoints = mmToPt(offsetXmm);
     const offsetYpoints = mmToPt(offsetYmm);
