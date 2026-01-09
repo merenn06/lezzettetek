@@ -289,11 +289,11 @@ export async function GET(req: Request) {
     const mmToPt = (mm: number) => (mm * 72) / 25.4;
 
     // Label page size MUST match printer paper size (NO A4 fallback)
-    // Required: 100mm x 150mm, margin: 0
-    const labelWidthMm = 100;
-    const labelHeightMm = 150;
-    const labelWidthPoints = mmToPt(labelWidthMm); // ~283.46 points
-    const labelHeightPoints = mmToPt(labelHeightMm); // ~425.20 points
+    // Required: 60mm x 80mm, margin: 0
+    const labelWidthMm = 60;
+    const labelHeightMm = 80;
+    const labelWidthPoints = mmToPt(labelWidthMm); // ~170.08 points
+    const labelHeightPoints = mmToPt(labelHeightMm); // ~226.77 points
     
     const page = pdfDoc.addPage([labelWidthPoints, labelHeightPoints]);
     
@@ -312,20 +312,20 @@ export async function GET(req: Request) {
     const pageHeight = labelHeightPoints;
     
     // Global offset to avoid printer clipping (shift content left and up)
-    const offsetXmm = -5; // 5mm left (negative = left shift)
-    const offsetYmm = 6;  // 6mm up (positive = up shift)
+    const offsetXmm = -2; // 2mm left (negative = left shift)
+    const offsetYmm = 3;  // 3mm up (positive = up shift)
     const offsetXpoints = mmToPt(offsetXmm);
     const offsetYpoints = mmToPt(offsetYmm);
     
-    // Padding: 6mm (as per spec)
-    const paddingMm = 6;
-    const paddingPoints = paddingMm * 2.83464; // ~17.01 points
+    // Padding: 2mm (minimal for 60x80mm label to maximize content area)
+    const paddingMm = 2;
+    const paddingPoints = mmToPt(paddingMm);
     
-    // Safe area: right 15-20mm, bottom 15mm (Yurtiçi logo area)
-    const safeAreaRightMm = 18;
-    const safeAreaBottomMm = 15;
-    const safeAreaRightPoints = safeAreaRightMm * 2.83464; // ~51.02 points
-    const safeAreaBottomPoints = safeAreaBottomMm * 2.83464; // 42.5196 points
+    // Safe area: right 8mm, bottom 6mm (Yurtiçi logo area, minimized for smaller label)
+    const safeAreaRightMm = 8;
+    const safeAreaBottomMm = 6;
+    const safeAreaRightPoints = mmToPt(safeAreaRightMm);
+    const safeAreaBottomPoints = mmToPt(safeAreaBottomMm);
     
     // Content area: page minus padding (box-sizing: border-box equivalent)
     const contentWidth = pageWidth - (paddingPoints * 2);
@@ -335,10 +335,10 @@ export async function GET(req: Request) {
     const usableWidth = contentWidth - safeAreaRightPoints;
     const usableHeight = contentHeight - safeAreaBottomPoints;
 
-    // Layout structure (as per spec):
-    // - Header: max-height 14mm
-    // - Barcode area: height 34mm (fixed)
-    // - Footer: remaining space
+    // Layout structure (adjusted for 60x80mm):
+    // - Header: max-height 6mm (compact)
+    // - Barcode area: height 28mm (balanced)
+    // - Footer: remaining space (at least 40mm for amount and order info)
 
     // Helper function to center text horizontally within content area (with offset)
     const getCenteredX = (text: string, fontSize: number): number => {
@@ -348,15 +348,15 @@ export async function GET(req: Request) {
 
     // Start from top (with padding + offset)
     let yPos = pageHeight - paddingPoints + offsetYpoints;
-    const lineSpacing = 3; // Compact spacing
+    const lineSpacing = 2.5; // Compact spacing
 
-    // HEADER SECTION (max-height 14mm)
-    const headerMaxHeightMm = 14;
-    const headerMaxHeightPoints = headerMaxHeightMm * 2.83464; // ~39.68 points
+    // HEADER SECTION (max-height 6mm, compact to maximize footer space)
+    const headerMaxHeightMm = 6;
+    const headerMaxHeightPoints = mmToPt(headerMaxHeightMm);
     
-    // 1. Title at top - CENTERED, max 4mm font
-    const titleSizeMm = 4;
-    const titleSize = titleSizeMm * 2.83464; // ~11.34 points
+    // 1. Title at top - CENTERED, 3mm font (compact)
+    const titleSizeMm = 3;
+    const titleSize = mmToPt(titleSizeMm);
     yPos -= titleSize + lineSpacing;
     const titleText = "Lezzette Tek - Tahsilat Etiketi";
     page.drawText(titleText, {
@@ -367,9 +367,9 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // 2. Document ID label - CENTERED, max 6mm font
-    const labelSizeMm = 6;
-    const labelSize = labelSizeMm * 2.83464; // ~17.01 points
+    // 2. Document ID label - CENTERED, 3.5mm font (compact)
+    const labelSizeMm = 3.5;
+    const labelSize = mmToPt(labelSizeMm);
     yPos -= labelSize + lineSpacing;
     page.drawText("Belge No:", {
       x: getCenteredX("Belge No:", labelSize),
@@ -379,7 +379,7 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // Document ID value - CENTERED, max 6mm font
+    // Document ID value - CENTERED, 3.5mm font
     yPos -= labelSize + lineSpacing;
     page.drawText(documentId, {
       x: getCenteredX(documentId, labelSize),
@@ -389,20 +389,19 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // BARCODE SECTION (height 34mm, fixed)
-    const barcodeAreaHeightMm = 34;
-    const barcodeAreaHeightPoints = barcodeAreaHeightMm * 2.83464; // ~96.38 points
+    // BARCODE SECTION (height 28mm, balanced to leave space for footer)
+    const barcodeAreaHeightMm = 28;
+    const barcodeAreaHeightPoints = mmToPt(barcodeAreaHeightMm);
     
-    // Barcode wrapper: 88mm width, 30mm height (as per original spec)
-    const barcodeWrapperWidthMm = 88;
-    const barcodeWrapperHeightMm = 30;
-    const barcodeWrapperWidthPoints = barcodeWrapperWidthMm * 2.83464; // ~249.45 points
-    const barcodeWrapperHeightPoints = barcodeWrapperHeightMm * 2.83464; // ~85.04 points
+    // Barcode wrapper: use available width minus safe area, max 24mm height
+    const barcodeWrapperWidthMm = labelWidthMm - (paddingMm * 2) - safeAreaRightMm;
+    const barcodeWrapperHeightMm = 24;
+    const barcodeWrapperWidthPoints = mmToPt(barcodeWrapperWidthMm);
+    const barcodeWrapperHeightPoints = mmToPt(barcodeWrapperHeightMm);
     
-    // Barcode text (below barcode) - CENTERED, 5mm font, line-height: 1
-    // IMPORTANT: Keep barcode image + text INSIDE the 34mm barcode area
+    // Barcode text (below barcode) - CENTERED, 5mm font (reduced to fit better)
     const barcodeTextSizeMm = 5;
-    const barcodeTextSize = barcodeTextSizeMm * 2.83464; // ~14.17 points
+    const barcodeTextSize = mmToPt(barcodeTextSizeMm);
 
     // Calculate barcode scale to fit within wrapper AND within remaining height of the barcode area
     const maxBarcodeWidth = barcodeWrapperWidthPoints;
@@ -444,9 +443,9 @@ export async function GET(req: Request) {
     // FOOTER SECTION (remaining space, above safe area)
     yPos = barcodeAreaStartY - lineSpacing;
     
-    // Collection amount label - CENTERED, max 7mm font
-    const amountLabelSizeMm = 7;
-    const amountLabelSize = amountLabelSizeMm * 2.83464; // ~19.84 points
+    // Collection amount label - CENTERED, 4.5mm font (balanced)
+    const amountLabelSizeMm = 4.5;
+    const amountLabelSize = mmToPt(amountLabelSizeMm);
     yPos -= amountLabelSize + lineSpacing;
     page.drawText("Tahsilat Tutarı:", {
       x: getCenteredX("Tahsilat Tutarı:", amountLabelSize),
@@ -456,7 +455,7 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // Collection amount value - CENTERED, max 7mm font (prominent but within limit)
+    // Collection amount value - CENTERED, 4.5mm font
     yPos -= amountLabelSize + lineSpacing;
     const amountText = `${amount} TL`;
     page.drawText(amountText, {
@@ -467,15 +466,15 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // Order info (compact, 3-3.2mm font) - LEFT ALIGNED (with offset)
-    const infoSizeMm = 3.2;
-    const infoSize = infoSizeMm * 2.83464; // ~9.07 points
+    // Order info - LEFT ALIGNED, 3.5mm font (balanced for fit)
+    const infoSizeMm = 3.5;
+    const infoSize = mmToPt(infoSizeMm);
     const infoX = paddingPoints + offsetXpoints;
     const footerMinY = paddingPoints + safeAreaBottomPoints;
     
-    yPos -= lineSpacing * 2;
+    yPos -= lineSpacing;
     if (yPos > footerMinY) {
-      const orderIdShort = order.id.substring(0, 8);
+      const orderIdShort = order.id.substring(0, 10);
       yPos -= infoSize + lineSpacing;
       if (yPos >= footerMinY) {
         page.drawText(`Sipariş: ${orderIdShort}...`, {
@@ -516,10 +515,18 @@ export async function GET(req: Request) {
     // PDF automatically clips content outside page dimensions (equivalent to overflow: hidden)
 
     // Set PDF metadata for thermal label printing
-    // Single label per page, exact 100mm x 80mm, no scaling
+    // Single label per page, exact 60mm x 80mm, no scaling
     pdfDoc.setTitle(`Yurtiçi Tahsilat Etiketi - ${documentId}`);
     pdfDoc.setCreator("Lezzette Tek");
     pdfDoc.setProducer("Lezzette Tek Label Generator");
+    
+    // Ensure only ONE page in PDF
+    if (pdfDoc.getPageCount() > 1) {
+      // Remove extra pages if any
+      while (pdfDoc.getPageCount() > 1) {
+        pdfDoc.removePage(pdfDoc.getPageCount() - 1);
+      }
+    }
     
     // Generate PDF bytes - ensures single page, exact size
     const pdfBytes = await pdfDoc.save();
@@ -536,7 +543,7 @@ export async function GET(req: Request) {
         "Content-Disposition": `inline; filename="yurtici-tahsilat-${documentId}.pdf"`,
         "Cache-Control": "no-store",
         // Print hints: exact size, no scaling, single page
-        "X-PDF-Page-Size": "100mm x 150mm",
+        "X-PDF-Page-Size": "60mm x 80mm",
         "X-PDF-Single-Page": "true",
       },
     });
