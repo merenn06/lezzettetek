@@ -96,11 +96,12 @@ export async function GET(req: Request) {
     const mmToPt = (mm: number) => (mm * 72) / 25.4;
 
     // Label page size MUST match printer paper size (NO A4 fallback)
-    // Required: 100mm x 80mm (landscape - yatay), margin: 0
-    const labelWidthMm = 100;
-    const labelHeightMm = 80;
-    const labelWidthPoints = mmToPt(labelWidthMm); // ~283.46 points
-    const labelHeightPoints = mmToPt(labelHeightMm); // ~226.77 points
+    // Physical label: 100mm x 80mm (landscape)
+    // PDF page: 80mm x 100mm (portrait) to fix rotation issue - content will be drawn normally
+    const labelWidthMm = 80;  // PDF page width (will be rotated by printer)
+    const labelHeightMm = 100; // PDF page height
+    const labelWidthPoints = mmToPt(labelWidthMm); // ~226.77 points
+    const labelHeightPoints = mmToPt(labelHeightMm); // ~283.46 points
     
     const page = pdfDoc.addPage([labelWidthPoints, labelHeightPoints]);
     
@@ -142,10 +143,10 @@ export async function GET(req: Request) {
     const usableWidth = contentWidth - safeAreaRightPoints; // Content width minus safe area
     const usableHeight = contentHeight - safeAreaBottomPoints;
 
-    // Layout structure (adjusted for 100x80mm landscape - yatay):
-    // - Header: max-height 7mm (reduced to save space)
-    // - Barcode area: height 28mm (reduced)
-    // - Footer: remaining space (at least 42mm for address info)
+    // Layout structure (adjusted for 80x100mm portrait - content drawn normally):
+    // - Header: max-height 8mm
+    // - Barcode area: height 35mm (more vertical space in portrait)
+    // - Footer: remaining space (at least 50mm for address info)
     
     // Helper function to center text horizontally within content area (with offset)
     const getCenteredX = (text: string, fontSize: number): number => {
@@ -187,13 +188,14 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // BARCODE SECTION (height 28mm, reduced to save space for footer)
-    const barcodeAreaHeightMm = 28;
+    // BARCODE SECTION (height 35mm, more space in portrait orientation)
+    const barcodeAreaHeightMm = 35;
     const barcodeAreaHeightPoints = mmToPt(barcodeAreaHeightMm);
     
-    // Barcode wrapper: use available width minus safe area, max 24mm height
+    // Barcode wrapper: use available width minus safe area, max 30mm height
+    // Note: Width is now 80mm (portrait PDF) but will appear as 100mm when printed
     const barcodeWrapperWidthMm = labelWidthMm - (paddingMm * 2) - safeAreaRightMm;
-    const barcodeWrapperHeightMm = 24;
+    const barcodeWrapperHeightMm = 30;
     const barcodeWrapperWidthPoints = mmToPt(barcodeWrapperWidthMm);
     const barcodeWrapperHeightPoints = mmToPt(barcodeWrapperHeightMm);
     
@@ -290,8 +292,8 @@ export async function GET(req: Request) {
 
     // Always draw address info if space available
     if (yPos > footerMinY) {
-      // Customer name (max 38 chars for 100mm width)
-      const customerName = (order.customer_name ?? "-").substring(0, 38);
+      // Customer name (max 30 chars for 80mm width in portrait PDF - will appear wider when printed)
+      const customerName = (order.customer_name ?? "-").substring(0, 30);
       yPos -= infoSize + lineSpacing;
       if (yPos >= footerMinY) {
         page.drawText(`Alıcı: ${customerName}`, {
@@ -323,10 +325,10 @@ export async function GET(req: Request) {
         }
       }
 
-      // City / District (max 38 chars)
+      // City / District (max 30 chars for 80mm width)
       yPos -= infoSize + lineSpacing;
       if (yPos >= footerMinY) {
-        const cityDistrict = `${order.city ?? "-"} / ${order.district ?? "-"}`.substring(0, 38);
+        const cityDistrict = `${order.city ?? "-"} / ${order.district ?? "-"}`.substring(0, 30);
         page.drawText(cityDistrict, {
           x: infoX,
           y: yPos,
@@ -340,7 +342,7 @@ export async function GET(req: Request) {
       if (order.phone) {
         yPos -= infoSize + lineSpacing;
         if (yPos >= footerMinY) {
-          const phone = (order.phone ?? "").substring(0, 38);
+          const phone = (order.phone ?? "").substring(0, 30);
           page.drawText(`Tel: ${phone}`, {
             x: infoX,
             y: yPos,
@@ -356,7 +358,8 @@ export async function GET(req: Request) {
     // PDF automatically clips content outside page dimensions (equivalent to overflow: hidden)
 
     // Set PDF metadata for thermal label printing
-    // Single label per page, exact 100mm x 80mm (landscape - yatay), no scaling
+    // Single label per page, exact 80mm x 100mm (portrait) - printer will rotate to match 100x80mm physical label
+    // Content is drawn normally (not rotated) so text appears correct orientation
     pdfDoc.setTitle(`Yurtiçi Kargo Etiketi - ${barcodeValue}`);
     pdfDoc.setCreator("Lezzette Tek");
     pdfDoc.setProducer("Lezzette Tek Label Generator");
@@ -382,7 +385,8 @@ export async function GET(req: Request) {
         "Content-Disposition": `inline; filename="${filename}"`,
         "Cache-Control": "no-store",
         // Print hints: exact size, no scaling, single page
-        "X-PDF-Page-Size": "100mm x 80mm",
+        // Note: PDF is 80x100mm (portrait) but physical label is 100x80mm - printer handles rotation
+        "X-PDF-Page-Size": "80mm x 100mm",
         "X-PDF-Single-Page": "true",
       },
     });
