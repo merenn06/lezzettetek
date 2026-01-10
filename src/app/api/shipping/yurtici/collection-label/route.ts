@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import * as soap from "soap";
 import { createHash } from "crypto";
 import bwipjs from "bwip-js";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, degrees } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -288,18 +288,22 @@ export async function GET(req: Request) {
     // Helper: mm to points conversion (1 inch = 25.4mm = 72 points)
     const mmToPt = (mm: number) => (mm * 72) / 25.4;
 
-    // Label page size MUST match printer paper size (NO A4 fallback)
+    // Label page size MUST match printer paper size EXACTLY (NO A4 fallback)
     // Physical label: 100mm x 80mm (landscape)
-    // PDF page: 80mm x 100mm (portrait) to fix rotation issue - content will be drawn normally
-    const labelWidthMm = 80;  // PDF page width (will be rotated by printer)
-    const labelHeightMm = 100; // PDF page height
-    const labelWidthPoints = mmToPt(labelWidthMm); // ~226.77 points
-    const labelHeightPoints = mmToPt(labelHeightMm); // ~283.46 points
+    // PDF page: 100mm x 80mm (landscape) - EXACT MATCH, NO ROTATION
+    const labelWidthMm = 100;  // PDF page width = physical label width
+    const labelHeightMm = 80;   // PDF page height = physical label height
+    const labelWidthPoints = mmToPt(labelWidthMm); // ~283.46 points
+    const labelHeightPoints = mmToPt(labelHeightMm); // ~226.77 points
     
     const page = pdfDoc.addPage([labelWidthPoints, labelHeightPoints]);
     
     // Set exact page size using pdf-lib API (ensures all boxes match)
+    // Width = 100mm, Height = 80mm (landscape) - EXACT MATCH
     page.setSize(labelWidthPoints, labelHeightPoints);
+    
+    // Explicitly set rotation to 0 degrees (no rotation)
+    page.setRotation(degrees(0));
     
     // Verify page dimensions before rendering
     const pageSize = page.getSize();
@@ -313,16 +317,16 @@ export async function GET(req: Request) {
     const pageHeight = labelHeightPoints;
     
     // Global offset to avoid printer clipping (shift content left and up)
-    const offsetXmm = -3; // 3mm left (negative = left shift, balanced)
-    const offsetYmm = 2;  // 2mm up (positive = up shift, reduced)
+    const offsetXmm = -3; // 3mm left (negative = left shift)
+    const offsetYmm = 2;  // 2mm up (positive = up shift)
     const offsetXpoints = mmToPt(offsetXmm);
     const offsetYpoints = mmToPt(offsetYmm);
     
-    // Padding: 3mm (balanced for 100x80mm label)
+    // Padding: 3mm (balanced for 100x80mm landscape label)
     const paddingMm = 3;
     const paddingPoints = mmToPt(paddingMm);
     
-    // Safe area: right 8mm, bottom 6mm (Yurtiçi logo area, minimized for smaller label)
+    // Safe area: right 8mm (Yurtiçi logo area), bottom 6mm
     const safeAreaRightMm = 8;
     const safeAreaBottomMm = 6;
     const safeAreaRightPoints = mmToPt(safeAreaRightMm);
@@ -336,10 +340,10 @@ export async function GET(req: Request) {
     const usableWidth = contentWidth - safeAreaRightPoints;
     const usableHeight = contentHeight - safeAreaBottomPoints;
 
-    // Layout structure (adjusted for 80x100mm portrait - content drawn normally):
-    // - Header: max-height 8mm
-    // - Barcode area: height 35mm (more vertical space in portrait)
-    // - Footer: remaining space (at least 50mm for amount and order info)
+    // Layout structure (adjusted for 100x80mm landscape):
+    // - Header: max-height 7mm
+    // - Barcode area: height 28mm
+    // - Footer: remaining space (at least 42mm for amount and order info)
 
     // Helper function to center text horizontally within content area (with offset)
     const getCenteredX = (text: string, fontSize: number): number => {
@@ -390,14 +394,14 @@ export async function GET(req: Request) {
       color: rgb(0, 0, 0),
     });
 
-    // BARCODE SECTION (height 35mm, more space in portrait orientation)
-    const barcodeAreaHeightMm = 35;
+    // BARCODE SECTION (height 28mm, balanced for 100x80mm landscape)
+    const barcodeAreaHeightMm = 28;
     const barcodeAreaHeightPoints = mmToPt(barcodeAreaHeightMm);
     
-    // Barcode wrapper: use available width minus safe area, max 30mm height
-    // Note: Width is now 80mm (portrait PDF) but will appear as 100mm when printed
+    // Barcode wrapper: use available width minus safe area, max 24mm height
+    // Width = 100mm (landscape) - padding - safe area
     const barcodeWrapperWidthMm = labelWidthMm - (paddingMm * 2) - safeAreaRightMm;
-    const barcodeWrapperHeightMm = 30;
+    const barcodeWrapperHeightMm = 24;
     const barcodeWrapperWidthPoints = mmToPt(barcodeWrapperWidthMm);
     const barcodeWrapperHeightPoints = mmToPt(barcodeWrapperHeightMm);
     
@@ -528,7 +532,7 @@ export async function GET(req: Request) {
 
       yPos -= infoSize + lineSpacing;
       if (yPos >= footerMinY) {
-        const customerName = (order.customer_name ?? "-").substring(0, 30);
+        const customerName = (order.customer_name ?? "-").substring(0, 38);
         page.drawText(`Alıcı: ${customerName}`, {
           x: infoX,
           y: yPos,
@@ -563,8 +567,8 @@ export async function GET(req: Request) {
     // PDF automatically clips content outside page dimensions (equivalent to overflow: hidden)
 
     // Set PDF metadata for thermal label printing
-    // Single label per page, exact 80mm x 100mm (portrait) - printer will rotate to match 100x80mm physical label
-    // Content is drawn normally (not rotated) so text appears correct orientation
+    // Single label per page, exact 100mm x 80mm (landscape) - EXACT MATCH to physical label
+    // No rotation, no scaling required - 1:1 match
     pdfDoc.setTitle(`Yurtiçi Tahsilat Etiketi - ${documentId}`);
     pdfDoc.setCreator("Lezzette Tek");
     pdfDoc.setProducer("Lezzette Tek Label Generator");
@@ -592,9 +596,10 @@ export async function GET(req: Request) {
         "Content-Disposition": `inline; filename="yurtici-tahsilat-${documentId}.pdf"`,
         "Cache-Control": "no-store",
         // Print hints: exact size, no scaling, single page
-        // Note: PDF is 80x100mm (portrait) but physical label is 100x80mm - printer handles rotation
-        "X-PDF-Page-Size": "80mm x 100mm",
+        // PDF size: 100mm x 80mm (landscape) - EXACT MATCH to physical label
+        "X-PDF-Page-Size": "100mm x 80mm",
         "X-PDF-Single-Page": "true",
+        "X-PDF-Rotation": "0",
       },
     });
   } catch (err: any) {
