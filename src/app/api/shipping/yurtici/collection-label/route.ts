@@ -305,6 +305,16 @@ export async function GET(req: Request) {
     // Rotate page -90° (counter-clockwise) to compensate for printer's 90° rotation
     page.setRotation(degrees(-90));
     
+    // Apply translation: +10mm to X (after rotation, this shifts content right)
+    // After -90° rotation, original X becomes Y, so we adjust offsetXpoints
+    const translationXmm = 10; // +10mm right shift (after rotation)
+    const translationXpoints = mmToPt(translationXmm);
+    
+    // Y offset for rotation: prevents content from sticking to top edge
+    // After -90° rotation, Y coordinates come from original X, need offset to push down
+    const rotationYOffsetMm = 18; // +18mm down shift (prevents top sticking, moves content down more)
+    const rotationYOffsetPoints = mmToPt(rotationYOffsetMm);
+    
     // Verify page dimensions before rendering
     const pageSize = page.getSize();
     console.log(`[yurtici-collection-label] PDF page size: ${pageSize.width.toFixed(2)} x ${pageSize.height.toFixed(2)} points (${labelWidthMm}mm x ${labelHeightMm}mm)`);
@@ -317,9 +327,9 @@ export async function GET(req: Request) {
     const pageHeight = labelHeightPoints;
     
     // Global offset to avoid printer clipping (shift content left and up)
-    const offsetXmm = -3; // 3mm left (negative = left shift)
+    const offsetXmm = -5; // 5mm left (negative = left shift, increased to move content left)
     const offsetYmm = 2;  // 2mm up (positive = up shift)
-    const offsetXpoints = mmToPt(offsetXmm);
+    const offsetXpoints = mmToPt(offsetXmm) + translationXpoints; // After rotation, this moves content left
     const offsetYpoints = mmToPt(offsetYmm);
     
     // Padding: 3mm (balanced for 100x80mm landscape label)
@@ -351,8 +361,9 @@ export async function GET(req: Request) {
       return paddingPoints + (contentWidth - textWidth) / 2 + offsetXpoints;
     };
 
-    // Start from top (with padding + offset)
-    let yPos = pageHeight - paddingPoints + offsetYpoints;
+    // Start from top (with padding + offset - rotation Y offset)
+    // Subtract rotationYOffsetPoints to prevent content sticking to top after rotation
+    let yPos = pageHeight - paddingPoints + offsetYpoints - rotationYOffsetPoints;
     const lineSpacing = 2; // Reduced spacing to save vertical space
 
     // HEADER SECTION (max-height 7mm, reduced to save space)
