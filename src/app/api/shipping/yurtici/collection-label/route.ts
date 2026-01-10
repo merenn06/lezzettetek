@@ -302,8 +302,8 @@ export async function GET(req: Request) {
     // Width = 100mm, Height = 80mm (landscape) - EXACT MATCH
     page.setSize(labelWidthPoints, labelHeightPoints);
     
-    // Explicitly set rotation to 0 degrees (no rotation)
-    page.setRotation(degrees(0));
+    // Rotate page -90° (counter-clockwise) to compensate for printer's 90° rotation
+    page.setRotation(degrees(-90));
     
     // Verify page dimensions before rendering
     const pageSize = page.getSize();
@@ -597,9 +597,10 @@ export async function GET(req: Request) {
         "Cache-Control": "no-store",
         // Print hints: exact size, no scaling, single page
         // PDF size: 100mm x 80mm (landscape) - EXACT MATCH to physical label
+        // PDF is rotated -90° to compensate for printer rotation
         "X-PDF-Page-Size": "100mm x 80mm",
         "X-PDF-Single-Page": "true",
-        "X-PDF-Rotation": "0",
+        "X-PDF-Rotation": "-90",
       },
     });
   } catch (err: any) {
