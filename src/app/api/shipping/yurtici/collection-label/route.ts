@@ -312,7 +312,7 @@ export async function GET(req: Request) {
     
     // Y offset for rotation: prevents content from sticking to top edge
     // After -90° rotation, Y coordinates come from original X, need offset to push down
-    const rotationYOffsetMm = 18; // +18mm down shift (prevents top sticking, moves content down more)
+    const rotationYOffsetMm = 20; // +20mm down shift (prevents top sticking, moves content down more)
     const rotationYOffsetPoints = mmToPt(rotationYOffsetMm);
     
     // Verify page dimensions before rendering
@@ -327,7 +327,7 @@ export async function GET(req: Request) {
     const pageHeight = labelHeightPoints;
     
     // Global offset to avoid printer clipping (shift content left and up)
-    const offsetXmm = -5; // 5mm left (negative = left shift, increased to move content left)
+    const offsetXmm = -7; // 7mm left (negative = left shift, increased to move content left more)
     const offsetYmm = 2;  // 2mm up (positive = up shift)
     const offsetXpoints = mmToPt(offsetXmm) + translationXpoints; // After rotation, this moves content left
     const offsetYpoints = mmToPt(offsetYmm);
