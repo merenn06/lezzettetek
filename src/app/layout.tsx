@@ -24,6 +24,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Lezzette Tek",
   description: "Lezzette Tek - Doğal ve Taze Ürünler",
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    apple: '/icon.png',
+    shortcut: '/icon.png',
+  },
 };
 
 export default function RootLayout({
