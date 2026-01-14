@@ -26,11 +26,15 @@ export const metadata: Metadata = {
   description: "Lezzette Tek - Doğal ve Taze Ürünler",
   icons: {
     icon: [
-      { url: '/icon.png', sizes: 'any' },
-      { url: '/icon.png', type: 'image/png' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon.png', sizes: 'any', type: 'image/png' },
     ],
-    apple: '/icon.png',
-    shortcut: '/icon.png',
+    apple: [
+      { url: '/icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon-32.png',
   },
 };
 
