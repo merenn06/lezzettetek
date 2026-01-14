@@ -5,11 +5,16 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/contexts/CartContext";
+import AccountButton from "./AccountButton";
+import AuthModal from "./AuthModal";
 
 export default function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
   const { toggleMiniCart, getTotalItems } = useCart();
   const totalItems = getTotalItems();
 
@@ -21,6 +26,30 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Auth state kontrolü
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/user', { cache: 'no-store' });
+        const data = await res.json();
+        setIsLoggedIn(!!data.user);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
+
+    // Auth state değişikliği event'ini dinle (logout sonrası)
+    const handleAuthStateChange = () => {
+      checkAuth();
+    };
+    window.addEventListener('auth-state-changed', handleAuthStateChange);
+
+    return () => {
+      window.removeEventListener('auth-state-changed', handleAuthStateChange);
+    };
+  }, [pathname]); // Pathname değişince tekrar kontrol et (login/logout sonrası)
 
   const links = [
     { href: "/", label: "Ana Sayfa" },
@@ -44,8 +73,8 @@ export default function Header() {
       <div className="bg-green-50/70 backdrop-blur border-b border-green-200/40">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            {/* Logo / Brand */}
-            <Link href="/" className="flex items-center gap-2">
+            {/* Sol: Logo */}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
               <Image
                 src="/brand-logo.webp"
                 alt="Lezzette Tek"
@@ -56,9 +85,8 @@ export default function Header() {
               />
             </Link>
 
-            {/* Desktop Navigation + Cart */}
-            <div className="hidden md:flex items-center gap-4 lg:gap-6 text-sm">
-              <nav className="flex items-center gap-3 lg:gap-5">
+            {/* Orta: Desktop Navigation (biraz sola kaydırılmış) */}
+            <nav className="hidden md:flex items-center gap-3 lg:gap-5 ml-12 text-sm flex-1">
               {links.map((link) => (
                 <Link
                   key={link.href}
@@ -74,6 +102,21 @@ export default function Header() {
               ))}
             </nav>
 
+            {/* Sağ: Desktop - Hesap + Sepet */}
+            <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+              <AccountButton
+                isLoggedIn={isLoggedIn}
+                variant="desktop"
+                onOpenLogin={() => {
+                  setAuthModalTab('login');
+                  setAuthModalOpen(true);
+                }}
+                onOpenSignup={() => {
+                  setAuthModalTab('signup');
+                  setAuthModalOpen(true);
+                }}
+              />
+              
               {/* Desktop Cart Button (triggers MiniCart) */}
               <button
                 type="button"
@@ -102,45 +145,92 @@ export default function Header() {
               </button>
             </div>
 
-            {/* Mobile Hamburger */}
-            <button
-              type="button"
-              className="md:hidden inline-flex items-center justify-center rounded-full p-2 text-green-700 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-              aria-label="Menüyü aç/kapat"
-              onClick={() => setMobileOpen((prev) => !prev)}
-            >
-              {mobileOpen ? (
-                // X icon
+            {/* Mobil: Sepet + Hamburger */}
+            <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+              {/* Mobile Cart Button */}
+              <button
+                type="button"
+                onClick={toggleMiniCart}
+                className="relative inline-flex items-center justify-center rounded-full bg-green-700 text-white p-2 shadow-sm hover:bg-green-800 transition-colors"
+                aria-label="Sepeti aç"
+              >
                 <svg
-                  className="h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
                   fill="none"
-                  viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                // Hamburger icon
-                <svg
-                  className="h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
                 </svg>
-              )}
-            </button>
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+
+              {/* Mobile Hamburger */}
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full p-2 text-green-700 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label="Menüyü aç/kapat"
+                onClick={() => setMobileOpen((prev) => !prev)}
+              >
+                {mobileOpen ? (
+                  // X icon
+                  <svg
+                    className="h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  // Hamburger icon
+                  <svg
+                    className="h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Mobile Navigation */}
           {mobileOpen && (
             <nav className="md:hidden mt-3 border-t border-green-100 pt-3">
-              <div className="flex flex-col gap-2">
+              {/* Hesap alanı - en üstte */}
+              <AccountButton
+                isLoggedIn={isLoggedIn}
+                variant="mobile"
+                onOpenLogin={() => {
+                  setAuthModalTab('login');
+                  setAuthModalOpen(true);
+                  setMobileOpen(false);
+                }}
+                onOpenSignup={() => {
+                  setAuthModalTab('signup');
+                  setAuthModalOpen(true);
+                  setMobileOpen(false);
+                }}
+              />
+              
+              {/* Menü linkleri */}
+              <div className="flex flex-col gap-2 mt-3">
                 {links.map((link) => (
                   <Link
                     key={link.href}
@@ -160,6 +250,26 @@ export default function Header() {
           )}
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => {
+          setAuthModalOpen(false);
+          // Auth state'i tekrar kontrol et (login/signup sonrası)
+          const checkAuth = async () => {
+            try {
+              const res = await fetch('/api/auth/user');
+              const data = await res.json();
+              setIsLoggedIn(!!data.user);
+            } catch {
+              setIsLoggedIn(false);
+            }
+          };
+          checkAuth();
+        }}
+        initialTab={authModalTab}
+      />
     </header>
   );
 }
