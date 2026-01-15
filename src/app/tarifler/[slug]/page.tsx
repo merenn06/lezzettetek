@@ -3,8 +3,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getRecipeBySlug } from '@/lib/recipes';
 
-export default async function RecipeDetailPage({ params }: { params: any }) {
-  const { slug } = params;
+export default async function RecipeDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
   const recipe = await getRecipeBySlug(slug);
 
   if (!recipe) {

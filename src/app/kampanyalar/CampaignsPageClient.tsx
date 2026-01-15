@@ -74,6 +74,17 @@ export default function CampaignsPageClient({ campaigns }: CampaignsPageClientPr
           <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
             Sizin için seçtiğimiz güncel kampanyalarımızı keşfedin. Avantajlı fırsatları kaçırmayın.
           </p>
+          <div className="mt-6 flex justify-center">
+            <Link
+              href="/urunlerimiz"
+              className="inline-flex items-center text-gray-600 hover:text-green-700 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Ürünlerimiz
+            </Link>
+          </div>
         </div>
       </section>
 

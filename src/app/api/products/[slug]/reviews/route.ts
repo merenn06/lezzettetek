@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ slug: string }> | { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const resolvedParams = 'then' in params ? await params : params;
+    const resolvedParams = await params;
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('product_id');
     const limit = parseInt(searchParams.get('limit') || '10', 10);

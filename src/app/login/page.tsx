@@ -7,13 +7,14 @@ export const dynamic = 'force-dynamic';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: Promise<{ next?: string }>;
 }) {
   const user = await getUser();
+  const resolvedSearchParams = await searchParams;
 
   // Zaten giriş yapmışsa redirect
   if (user) {
-    const next = searchParams.next || '/account';
+    const next = resolvedSearchParams.next || '/account';
     redirect(next);
   }
 
@@ -28,7 +29,7 @@ export default async function LoginPage({
             Hesabınıza giriş yapın
           </p>
 
-          <LoginForm next={searchParams.next} />
+          <LoginForm next={resolvedSearchParams.next} />
         </div>
       </div>
     </div>

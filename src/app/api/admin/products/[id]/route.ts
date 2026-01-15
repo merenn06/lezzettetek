@@ -10,7 +10,7 @@ const supabase = supabaseUrl && supabaseServiceKey
 
 export async function GET(
   _request: Request,
-  context: any
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!supabase) {
@@ -20,7 +20,7 @@ export async function GET(
       );
     }
 
-    const resolvedParams = "then" in context.params ? await context.params : context.params;
+    const resolvedParams = await context.params;
     const { id } = resolvedParams;
 
     const { data, error } = await supabase
@@ -59,7 +59,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: any
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!supabase) {
@@ -69,7 +69,7 @@ export async function PUT(
       );
     }
 
-    const resolvedParams = "then" in context.params ? await context.params : context.params;
+    const resolvedParams = await context.params;
     const { id } = resolvedParams;
 
     const body = await request.json();
@@ -151,7 +151,7 @@ export async function PUT(
 
 export async function DELETE(
   _request: Request,
-  context: any
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!supabase) {
@@ -161,7 +161,7 @@ export async function DELETE(
       );
     }
 
-    const resolvedParams = "then" in context.params ? await context.params : context.params;
+    const resolvedParams = await context.params;
     const { id } = resolvedParams;
 
     const { error } = await supabase

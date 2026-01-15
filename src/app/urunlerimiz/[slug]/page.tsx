@@ -18,9 +18,9 @@ export const dynamic = 'force-dynamic';
 export default async function ProductDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const resolvedParams = 'then' in params ? await params : params;
+  const resolvedParams = await params;
   const { slug } = resolvedParams;
 
   if (!supabase) {

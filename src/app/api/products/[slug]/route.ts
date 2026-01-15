@@ -10,7 +10,7 @@ const supabase = supabaseUrl && supabaseServiceKey
 
 export async function GET(
   _request: Request,
-  context: any
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
     if (!supabase) {
@@ -20,7 +20,7 @@ export async function GET(
       );
     }
 
-    const resolvedParams = "then" in context.params ? await context.params : context.params;
+    const resolvedParams = await context.params;
     const { slug } = resolvedParams;
 
     const { data, error } = await supabase

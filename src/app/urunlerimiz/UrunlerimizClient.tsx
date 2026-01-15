@@ -6,6 +6,7 @@ import Image from 'next/image';
 import type { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
+import PartnersLogos from '@/components/PartnersLogos';
 
 const CATEGORY_LABELS: Record<string, string> = {
   kavanoz: 'Kavanoz Ürünler',
@@ -121,6 +122,9 @@ export default function UrunlerimizClient() {
           </div>
         </div>
       </section>
+
+      {/* Partners Logos Section */}
+      <PartnersLogos />
 
       {/* Category Filter Bar */}
       <section className="py-8 px-4 bg-white border-b border-gray-100">

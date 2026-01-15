@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export async function PATCH(
   request: Request,
-  context: any
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!supabase) {
@@ -13,7 +13,7 @@ export async function PATCH(
       );
     }
 
-    const resolvedParams = 'then' in context.params ? await context.params : context.params;
+    const resolvedParams = await context.params;
     const { id } = resolvedParams;
 
     const body = await request.json();
