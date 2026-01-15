@@ -20,10 +20,10 @@ export async function POST(request: Request) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
-      .eq("user_id", session.user.id)
+      .eq("id", session.user.id)
       .maybeSingle();
 
-    const role = profile?.role as string | undefined;
+    const role = profile?.role ? String(profile.role).trim().toLowerCase() : undefined;
     const ALLOWED_ROLES = new Set(["admin", "staff"]);
 
     if (!role || !ALLOWED_ROLES.has(role)) {

@@ -24,10 +24,10 @@ export default async function AdminPanelLayout({
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("user_id", session.user.id)
+    .eq("id", session.user.id)
     .maybeSingle();
 
-  const role = profile?.role as string | undefined;
+  const role = profile?.role ? String(profile.role).trim().toLowerCase() : undefined;
 
   if (!role || !ALLOWED_ROLES.has(role)) {
     return (
