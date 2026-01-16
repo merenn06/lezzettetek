@@ -24,6 +24,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Lezzette Tek",
   description: "Lezzette Tek - Doğal ve Taze Ürünler",
+  verification: {
+    google: "kMWicVXQeB6XgXuaE8VyEbIaXPF1_vvNU2CWEaKVxOI",
+  },
   icons: {
     icon: [
       { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
