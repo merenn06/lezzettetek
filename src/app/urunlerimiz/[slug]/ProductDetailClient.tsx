@@ -130,12 +130,26 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               {/* Call-to-Action Buttons */}
               <div className="mt-auto space-y-4">
+                <p className="text-sm text-gray-600">
+                  Bugün sipariş ver, tazeliği bozulmadan gönderelim.
+                </p>
                 <button
                   onClick={handleAddToCart}
                   className="w-full py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md"
                 >
                   Sepete Ekle
                 </button>
+                <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1">
+                    ✅ Katkısız
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1">
+                    ✅ Vakumlu ambalaj
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1">
+                    ✅ 1–3 günde kargo
+                  </span>
+                </div>
                 <div className="flex gap-3">
                   <Link
                     href="/cart"

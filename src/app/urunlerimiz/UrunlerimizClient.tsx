@@ -21,6 +21,20 @@ const CATEGORY_STYLES: Record<string, { gradient: string; iconColor: string }> =
   default: { gradient: 'from-green-200 to-green-300', iconColor: 'text-green-700' },
 };
 
+const MICRO_PERSUASION_LINES = [
+  'Siparişle hazırlanır',
+  'Katkı maddesi içermez',
+  'Vakumlu – aç & kullan',
+  'Pişirmeye hazır',
+  'En çok tercih edilen',
+];
+
+const PRODUCT_BADGES = [
+  { label: '⭐ En Çok Satan', style: 'bg-amber-100 text-amber-800' },
+  { label: '🆕 İlk Kez Alanlar İçin', style: 'bg-blue-100 text-blue-800' },
+  { label: '🎁 Kampanyalı', style: 'bg-rose-100 text-rose-800' },
+];
+
 export default function UrunlerimizClient() {
   const { addItem } = useCart();
   const { triggerAnimation } = useFlyToCart();
@@ -60,6 +74,13 @@ export default function UrunlerimizClient() {
   const filteredProducts = products;
 
   const getProductStyle = () => CATEGORY_STYLES.default;
+  const getMicroLine = (index: number) => MICRO_PERSUASION_LINES[index % MICRO_PERSUASION_LINES.length];
+  const getBadgeForIndex = (index: number) => {
+    if (index % 6 === 0) return PRODUCT_BADGES[0];
+    if (index % 6 === 1) return PRODUCT_BADGES[1];
+    if (index % 6 === 2) return PRODUCT_BADGES[2];
+    return null;
+  };
 
   const formatPrice = (price: number) =>
     price.toLocaleString('tr-TR', {
@@ -74,10 +95,25 @@ export default function UrunlerimizClient() {
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
             Ürünlerimiz
           </h1>
-          <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-            Doğanın en taze ve kaliteli ürünlerini sofralarınıza getiriyoruz. 
-            Her ürünümüz, özenle seçilmiş içeriklerle hazırlanır ve doğal lezzetini korur.
-          </p>
+          <div className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="font-semibold text-gray-900">
+              El Yapımı &amp; Katkısız Konserveler
+            </p>
+            <p className="mt-2">
+              Raf ürünü gibi değil. Siparişle hazırlanır, vakumlu paketlenir.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm md:text-base text-gray-700">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                🚚 1–3 günde kargo
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                🌿 Katkı &amp; koruyucu yok
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                🇹🇷 Yerli üretim
+              </span>
+            </div>
+          </div>
 
           {/* Sabit kampanya banner + /kampanyalar linki */}
           <div className="mt-10 flex justify-center">
@@ -169,9 +205,11 @@ export default function UrunlerimizClient() {
 
           {!loading && !error && filteredProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product, index) => {
                 const style = getProductStyle();
                 const hasPrice = typeof product.price === 'number';
+                const microLine = getMicroLine(index);
+                const badge = getBadgeForIndex(index);
 
                 return (
                   <div
@@ -185,6 +223,13 @@ export default function UrunlerimizClient() {
                     >
                       {/* Product Image */}
                       <div className={`aspect-square bg-gradient-to-br ${style.gradient} flex items-center justify-center relative overflow-hidden`}>
+                        {badge && (
+                          <span
+                            className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm ${badge.style}`}
+                          >
+                            {badge.label}
+                          </span>
+                        )}
                         {product.image_url ? (
                           <Image
                             src={product.image_url}
@@ -211,6 +256,7 @@ export default function UrunlerimizClient() {
                             {formatPrice(product.price)} ₺
                           </p>
                         )}
+                        <p className="text-xs text-gray-500 mb-2">{microLine}</p>
                         <p className="text-gray-600 mb-3 leading-relaxed text-sm line-clamp-2">
                           {product.description}
                         </p>
