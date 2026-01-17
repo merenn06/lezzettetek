@@ -1,10 +1,9 @@
 'use server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
-export async function signIn(email: string, password: string) {
+export async function signInWithPassword(email: string, password: string) {
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,7 +37,7 @@ export async function signIn(email: string, password: string) {
   };
 }
 
-export async function signUp(email: string, password: string, fullName: string) {
+export async function signUpWithPassword(email: string, password: string, fullName: string) {
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signUp({
@@ -67,6 +66,8 @@ export async function signUp(email: string, password: string, fullName: string) 
     .insert({
       id: data.user.id,
       full_name: fullName,
+      email,
+      phone: null,
     });
 
   if (profileError) {
