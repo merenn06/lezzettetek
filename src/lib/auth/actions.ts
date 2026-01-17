@@ -1,6 +1,8 @@
 'use server';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { phoneToEmail } from '@/lib/auth/phoneEmail';
+import { normalizePhoneTR } from '@/lib/phone/normalizePhoneTR';
 import { revalidatePath } from 'next/cache';
 
 export async function signInWithPassword(email: string, password: string) {
@@ -15,6 +17,8 @@ export async function signInWithPassword(email: string, password: string) {
     let message = error.message;
     if (/email.*confirm/i.test(message)) {
       message = 'E-posta adresiniz henüz doğrulanmamış. Lütfen e-posta kutunuzu kontrol edin.';
+    } else if (/invalid login credentials/i.test(message)) {
+      message = 'Şifre yanlış.';
     }
 
     return {
@@ -35,6 +39,19 @@ export async function signInWithPassword(email: string, password: string) {
     success: true,
     session: data.session,
   };
+}
+
+export async function signInWithPhonePassword(phone: string, password: string) {
+  try {
+    const normalizedPhone = normalizePhoneTR(phone);
+    const email = phoneToEmail(normalizedPhone);
+    return signInWithPassword(email, password);
+  } catch {
+    return {
+      success: false,
+      error: 'Geçersiz telefon numarası',
+    };
+  }
 }
 
 export async function signUpWithPassword(email: string, password: string, fullName: string) {
@@ -78,6 +95,59 @@ export async function signUpWithPassword(email: string, password: string, fullNa
   // Session varsa direkt giriş yapılmış (email confirmation kapalı)
   // Session yoksa da user oluştu, kullanıcı login ekranına yönlendirilebilir
   // Ama genelde email confirmation kapalıysa session gelir
+  revalidatePath('/', 'layout');
+  return {
+    success: true,
+    session: data.session,
+    user: data.user,
+  };
+}
+
+export async function signUpWithPhonePassword(phone: string, password: string, fullName: string) {
+  const supabase = await createSupabaseServerClient();
+  let normalizedPhone: string;
+  let email: string;
+
+  try {
+    normalizedPhone = normalizePhoneTR(phone);
+    email = phoneToEmail(normalizedPhone);
+  } catch {
+    return {
+      success: false,
+      error: 'Geçersiz telefon numarası',
+    };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+
+  if (!data.user) {
+    return {
+      success: false,
+      error: 'Kullanıcı oluşturulamadı. Lütfen tekrar deneyin.',
+    };
+  }
+
+  const { error: profileError } = await supabase.from('profiles').insert({
+    id: data.user.id,
+    full_name: fullName,
+    phone: normalizedPhone,
+    email: null,
+  });
+
+  if (profileError) {
+    console.error('[phone-signUp] Profile insert error:', profileError);
+  }
+
   revalidatePath('/', 'layout');
   return {
     success: true,

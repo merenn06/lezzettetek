@@ -30,6 +30,15 @@ export default async function AccountPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Telefon
+              </label>
+              <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-900">
+                {user.phone || '-'}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Kullanıcı ID
               </label>
               <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-600 text-sm font-mono">

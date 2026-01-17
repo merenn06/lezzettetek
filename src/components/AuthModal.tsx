@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithPassword, signUpWithPassword } from '@/lib/auth/actions';
-import PhoneOtpForm from '@/components/PhoneOtpForm';
+import { signInWithPassword, signInWithPhonePassword, signUpWithPassword, signUpWithPhonePassword } from '@/lib/auth/actions';
+import { normalizePhoneTR } from '@/lib/phone/normalizePhoneTR';
 
 type AuthModalProps = {
   isOpen: boolean;
@@ -120,6 +120,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const router = useRouter();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -136,7 +137,20 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         return;
       }
 
-      const result = await signInWithPassword(email.trim(), password);
+      if (authMethod === 'phone') {
+        try {
+          normalizePhoneTR(phone);
+        } catch {
+          setError('Geçersiz telefon numarası');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const result =
+        authMethod === 'email'
+          ? await signInWithPassword(email.trim(), password)
+          : await signInWithPhonePassword(phone, password);
 
       if (!result.success) {
         setError(result.error || 'Giriş yapılamadı. Lütfen tekrar deneyin.');
@@ -227,13 +241,55 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </form>
       ) : (
-        <PhoneOtpForm
-          mode="login"
-          onSuccess={() => {
-            router.refresh();
-            onSuccess();
-          }}
-        />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="modal-phone-login" className="block text-sm font-semibold text-gray-700 mb-2">
+              Telefon
+            </label>
+            <input
+              type="tel"
+              id="modal-phone-login"
+              name="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="05xx xxx xx xx"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="modal-phone-password" className="block text-sm font-semibold text-gray-700 mb-2">
+              Şifre
+            </label>
+            <input
+              type="password"
+              id="modal-phone-password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="••••••••"
+              disabled={isLoading}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full px-8 py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+          </button>
+        </form>
       )}
     </div>
   );
@@ -245,6 +301,7 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -270,7 +327,20 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
     setIsLoading(true);
 
     try {
-      const result = await signUpWithPassword(email, password, fullName);
+      if (authMethod === 'phone') {
+        try {
+          normalizePhoneTR(phone);
+        } catch {
+          setError('Geçersiz telefon numarası');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const result =
+        authMethod === 'email'
+          ? await signUpWithPassword(email, password, fullName)
+          : await signUpWithPhonePassword(phone, password, fullName);
 
       if (!result.success) {
         setError(result.error || 'Kayıt yapılamadı. Lütfen tekrar deneyin.');
@@ -418,7 +488,7 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </form>
       ) : (
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="modal-phone-fullname" className="block text-sm font-semibold text-gray-700 mb-2">
               Ad Soyad
@@ -435,15 +505,73 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
               disabled={isLoading}
             />
           </div>
-          <PhoneOtpForm
-            mode="signup"
-            fullName={fullName}
-            onSuccess={() => {
-              router.refresh();
-              onSuccess();
-            }}
-          />
-        </div>
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="modal-phone-signup" className="block text-sm font-semibold text-gray-700 mb-2">
+              Telefon
+            </label>
+            <input
+              type="tel"
+              id="modal-phone-signup"
+              name="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="05xx xxx xx xx"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="modal-phone-password-signup" className="block text-sm font-semibold text-gray-700 mb-2">
+              Şifre
+            </label>
+            <input
+              type="password"
+              id="modal-phone-password-signup"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="En az 6 karakter"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="modal-phone-confirm" className="block text-sm font-semibold text-gray-700 mb-2">
+              Şifre Tekrar
+            </label>
+            <input
+              type="password"
+              id="modal-phone-confirm"
+              name="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="Şifrenizi tekrar girin"
+              disabled={isLoading}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full px-8 py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Kayıt yapılıyor...' : 'Kaydol'}
+          </button>
+        </form>
       )}
     </div>
   );

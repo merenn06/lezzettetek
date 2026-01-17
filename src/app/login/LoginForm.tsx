@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signInWithPassword } from '@/lib/auth/actions';
-import PhoneOtpForm from '@/components/PhoneOtpForm';
+import { signInWithPassword, signInWithPhonePassword } from '@/lib/auth/actions';
+import { normalizePhoneTR } from '@/lib/phone/normalizePhoneTR';
 
 export default function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +28,20 @@ export default function LoginForm({ next }: { next?: string }) {
         return;
       }
 
-      const result = await signInWithPassword(email.trim(), password);
+      if (authMethod === 'phone') {
+        try {
+          normalizePhoneTR(phone);
+        } catch {
+          setError('Geçersiz telefon numarası');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const result =
+        authMethod === 'email'
+          ? await signInWithPassword(email.trim(), password)
+          : await signInWithPhonePassword(phone, password);
 
       if (!result.success) {
         setError(result.error || 'Giriş yapılamadı. Lütfen tekrar deneyin.');
@@ -119,14 +133,55 @@ export default function LoginForm({ next }: { next?: string }) {
           </button>
         </form>
       ) : (
-        <PhoneOtpForm
-          mode="login"
-          onSuccess={() => {
-            const redirectTo = next || searchParams.get('next') || '/account';
-            router.push(redirectTo);
-            router.refresh();
-          }}
-        />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+              Telefon
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="05xx xxx xx xx"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone-password" className="block text-sm font-semibold text-gray-700 mb-2">
+              Şifre
+            </label>
+            <input
+              type="password"
+              id="phone-password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="••••••••"
+              disabled={isLoading}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full px-8 py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+          </button>
+        </form>
       )}
 
       <div className="text-center pt-4 border-t border-gray-200">

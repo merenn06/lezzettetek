@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signUpWithPassword } from '@/lib/auth/actions';
-import PhoneOtpForm from '@/components/PhoneOtpForm';
+import { signUpWithPassword, signUpWithPhonePassword } from '@/lib/auth/actions';
+import { normalizePhoneTR } from '@/lib/phone/normalizePhoneTR';
 
 export default function SignupForm({ next }: { next?: string }) {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function SignupForm({ next }: { next?: string }) {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +35,22 @@ export default function SignupForm({ next }: { next?: string }) {
       return;
     }
 
+    if (authMethod === 'phone') {
+      try {
+        normalizePhoneTR(phone);
+      } catch {
+        setError('Geçersiz telefon numarası');
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
-      const result = await signUpWithPassword(email, password, fullName);
+      const result =
+        authMethod === 'email'
+          ? await signUpWithPassword(email, password, fullName)
+          : await signUpWithPhonePassword(phone, password, fullName);
 
       if (!result.success) {
         setError(result.error || 'Kayıt yapılamadı. Lütfen tekrar deneyin.');
@@ -186,7 +199,7 @@ export default function SignupForm({ next }: { next?: string }) {
           </button>
         </form>
       ) : (
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="phone-fullname" className="block text-sm font-semibold text-gray-700 mb-2">
               Ad Soyad
@@ -203,16 +216,73 @@ export default function SignupForm({ next }: { next?: string }) {
               disabled={isLoading}
             />
           </div>
-          <PhoneOtpForm
-            mode="signup"
-            fullName={fullName}
-            onSuccess={() => {
-              const redirectTo = next || searchParams.get('next') || '/account';
-              router.push(redirectTo);
-              router.refresh();
-            }}
-          />
-        </div>
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="phone-signup" className="block text-sm font-semibold text-gray-700 mb-2">
+              Telefon
+            </label>
+            <input
+              type="tel"
+              id="phone-signup"
+              name="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="05xx xxx xx xx"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone-password" className="block text-sm font-semibold text-gray-700 mb-2">
+              Şifre
+            </label>
+            <input
+              type="password"
+              id="phone-password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="En az 6 karakter"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone-confirm" className="block text-sm font-semibold text-gray-700 mb-2">
+              Şifre Tekrar
+            </label>
+            <input
+              type="password"
+              id="phone-confirm"
+              name="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+              placeholder="Şifrenizi tekrar girin"
+              disabled={isLoading}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full px-8 py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Kayıt yapılıyor...' : 'Kaydol'}
+          </button>
+        </form>
       )}
 
       <div className="text-center pt-4 border-t border-gray-200">
