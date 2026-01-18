@@ -4,21 +4,27 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey = supabaseServiceKey || supabaseAnonKey;
 
 // Ortam değişkeni yoksa erkenden patlayalım:
-if (!supabaseUrl || !supabaseServiceKey) {
+if (!supabaseUrl || !supabaseKey) {
   console.error("Supabase env değişkenleri eksik!");
 }
 
-const supabase = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
+const supabase = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey)
   : null;
 
 export async function GET() {
   try {
     if (!supabase) {
       return NextResponse.json(
-        { success: false, error: "Supabase client başlatılamadı. Env değişkenlerini kontrol et." },
+        {
+          success: false,
+          error:
+            "Supabase client başlatılamadı. NEXT_PUBLIC_SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY (veya NEXT_PUBLIC_SUPABASE_ANON_KEY) kontrol edin.",
+        },
         { status: 500 }
       );
     }
