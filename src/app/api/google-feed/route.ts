@@ -8,7 +8,6 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 type ProductRow = {
   id?: string | number | null;
   name?: string | null;
-  title?: string | null;
   slug?: string | null;
   description?: string | null;
   content?: string | null;
@@ -61,7 +60,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,title,slug,description,content,price,image_url,stock,quantity")
+    .select("id,name,slug,description,content,price,image_url,stock,quantity")
     .order("sort_order", { ascending: true });
 
   if (error) {
@@ -76,7 +75,7 @@ export async function GET() {
   const items = (data as ProductRow[] | null)
     ?.map((product) => {
       const id = product.id ? String(product.id) : "";
-      const title = product.name?.trim() || product.title?.trim() || "Lezzette Tek Ürün";
+      const title = product.name?.trim() || "Lezzette Tek Ürün";
       const description =
         product.description?.trim() ||
         product.content?.trim() ||
