@@ -14,7 +14,6 @@ type ProductRow = {
   price?: number | string | null;
   image_url?: string | null;
   stock?: number | null;
-  quantity?: number | null;
 };
 
 const escapeXml = (value: string) =>
@@ -60,7 +59,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,slug,description,content,price,image_url,stock,quantity")
+    .select("id,name,slug,description,content,price,image_url,stock")
     .order("sort_order", { ascending: true });
 
   if (error) {
@@ -88,10 +87,8 @@ export async function GET() {
         ? toAbsoluteUrl(imageUrl, baseUrl)
         : toAbsoluteUrl("/icon.png", baseUrl);
 
-      const hasStockInfo =
-        typeof product.stock === "number" || typeof product.quantity === "number";
-      const stockValue =
-        typeof product.stock === "number" ? product.stock : product.quantity;
+      const hasStockInfo = typeof product.stock === "number";
+      const stockValue = product.stock;
       const availability =
         !hasStockInfo || (typeof stockValue === "number" && stockValue > 0)
           ? "in_stock"
