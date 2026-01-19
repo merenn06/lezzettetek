@@ -16,6 +16,21 @@ export async function POST(request: Request) {
       );
     }
 
+    const getAdminEmails = () => {
+      const orderNotify = process.env.ORDER_NOTIFY_EMAIL || "";
+      const adminEmail = process.env.ADMIN_EMAIL || "";
+      const contactNotify = process.env.CONTACT_NOTIFY_EMAIL || "";
+      const all = [orderNotify, adminEmail, contactNotify]
+        .filter(Boolean)
+        .flatMap((val) => val.split(","))
+        .map((val) => val.trim().toLowerCase())
+        .filter((val) => val.length > 0);
+      return Array.from(new Set(all));
+    };
+
+    const userEmail = (session.user.email || "").trim().toLowerCase();
+    const adminEmails = getAdminEmails();
+
     // Check if user has admin/staff role
     const { data: profile } = await supabase
       .from("profiles")
@@ -26,7 +41,10 @@ export async function POST(request: Request) {
     const role = profile?.role ? String(profile.role).trim().toLowerCase() : undefined;
     const ALLOWED_ROLES = new Set(["admin", "staff"]);
 
-    if (!role || !ALLOWED_ROLES.has(role)) {
+    const hasRole = role && ALLOWED_ROLES.has(role);
+    const hasEmailAccess = userEmail && adminEmails.includes(userEmail);
+
+    if (!hasRole && !hasEmailAccess) {
       return NextResponse.json(
         { success: false, error: "Yetkisiz erişim" },
         { status: 403 }
