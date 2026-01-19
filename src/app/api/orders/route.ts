@@ -16,6 +16,10 @@ type CheckoutRequestBody = {
   note?: string | null;
   payment_method: "havale" | "kapida" | "iyzico" | "cod";
   shipping_payment_type?: "cash" | "card" | null; // COD tahsilat tipi (nakit/kart)
+  invoice_type?: "individual" | "corporate";
+  invoice_company_name?: string | null;
+  invoice_tax_number?: string | null;
+  invoice_tax_office?: string | null;
   items: Array<{
     product_id: string;
     product_name: string;
@@ -76,6 +80,30 @@ function validateRequest(body: any): asserts body is CheckoutRequestBody {
       "Geçersiz payment_method. Sadece 'havale', 'kapida', 'iyzico' veya 'cod' olabilir."
     );
   }
+
+  const invoiceType = body.invoice_type || "individual";
+  if (invoiceType !== "individual" && invoiceType !== "corporate") {
+    throw new Error("Geçersiz invoice_type. Sadece 'individual' veya 'corporate' olabilir.");
+  }
+
+  if (invoiceType === "corporate") {
+    const companyName = String(body.invoice_company_name || "").trim();
+    const taxOffice = String(body.invoice_tax_office || "").trim();
+    const taxNumber = String(body.invoice_tax_number || "").trim();
+
+    if (!companyName) {
+      throw new Error("Geçersiz istek: 'invoice_company_name' alanı zorunludur.");
+    }
+    if (!taxOffice) {
+      throw new Error("Geçersiz istek: 'invoice_tax_office' alanı zorunludur.");
+    }
+    if (!taxNumber) {
+      throw new Error("Geçersiz istek: 'invoice_tax_number' alanı zorunludur.");
+    }
+    if (!/^\d+$/.test(taxNumber) || !(taxNumber.length === 10 || taxNumber.length === 11)) {
+      throw new Error("Vergi numarası 10 (VKN) veya 11 (TCKN) haneli olmalıdır.");
+    }
+  }
 }
 
 export async function POST(req: Request) {
@@ -94,6 +122,10 @@ export async function POST(req: Request) {
       note = null,
       payment_method,
       shipping_payment_type: rawShippingPaymentType = null,
+      invoice_type = "individual",
+      invoice_company_name = null,
+      invoice_tax_number = null,
+      invoice_tax_office = null,
       items,
     } = body as CheckoutRequestBody;
 
@@ -124,6 +156,10 @@ export async function POST(req: Request) {
       note,
       payment_method,
       shipping_payment_type, // COD tahsilat tipi (cash/card)
+      invoice_type,
+      invoice_company_name,
+      invoice_tax_number,
+      invoice_tax_office,
     };
 
     const { orderId } = await createOrderWithItems(orderData, mappedItems);

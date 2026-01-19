@@ -43,6 +43,11 @@ export default function CheckoutPage() {
     district: '',
     postalCode: '',
     deliveryNote: '',
+    // Corporate invoice
+    corporateInvoice: false,
+    companyName: '',
+    taxNumber: '',
+    taxOffice: '',
     // Shipping
     shippingMethod: 'yurtici-kargo',
     // Payment
@@ -79,10 +84,12 @@ export default function CheckoutPage() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    const normalizedValue =
+      name === 'taxNumber' ? value.replace(/\D/g, '') : value;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' ? checked : normalizedValue,
     }));
 
     // Clear error for this field when user starts typing
@@ -128,6 +135,22 @@ export default function CheckoutPage() {
       newErrors.district = 'İlçe gereklidir';
     }
 
+    // Corporate invoice validation
+    if (formData.corporateInvoice) {
+      if (!formData.companyName.trim()) {
+        newErrors.companyName = 'Firma adı gereklidir';
+      }
+      if (!formData.taxOffice.trim()) {
+        newErrors.taxOffice = 'Vergi dairesi gereklidir';
+      }
+      const taxNumber = formData.taxNumber.trim();
+      if (!taxNumber) {
+        newErrors.taxNumber = 'Vergi numarası gereklidir';
+      } else if (!(taxNumber.length === 10 || taxNumber.length === 11)) {
+        newErrors.taxNumber = 'Vergi numarası 10 (VKN) veya 11 (TCKN) haneli olmalıdır.';
+      }
+    }
+
     // Confirmation checkboxes
     if (!formData.termsAccepted) {
       newErrors.termsAccepted = 'Bu onay gereklidir';
@@ -158,6 +181,7 @@ export default function CheckoutPage() {
       // iyzico payment flow
       try {
         // First, create order with pending_payment status
+        const invoiceType = formData.corporateInvoice ? 'corporate' : 'individual';
         const orderData = {
           customer_name: formData.fullName.trim(),
           phone: formData.phone.trim(),
@@ -167,6 +191,10 @@ export default function CheckoutPage() {
           district: formData.district.trim(),
           note: formData.deliveryNote.trim() || null,
           payment_method: 'iyzico',
+          invoice_type: invoiceType,
+          invoice_company_name: formData.corporateInvoice ? formData.companyName.trim() : null,
+          invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
+          invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
           items: items.map((item) => ({
             product_id: item.product.id,
             product_name: item.product.name,
@@ -232,6 +260,7 @@ export default function CheckoutPage() {
     const paymentMethod = paymentMethodMap[formData.paymentMethod] || 'kapida';
 
     // Prepare order data for API
+    const invoiceType = formData.corporateInvoice ? 'corporate' : 'individual';
     const orderData = {
       customer_name: formData.fullName.trim(),
       phone: formData.phone.trim(),
@@ -243,6 +272,10 @@ export default function CheckoutPage() {
       payment_method: paymentMethod,
       // COD tahsilat tipi: kontrat gereği her zaman "card" (kredi kartı)
       shipping_payment_type: paymentMethod === 'kapida' ? 'card' : null,
+      invoice_type: invoiceType,
+      invoice_company_name: formData.corporateInvoice ? formData.companyName.trim() : null,
+      invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
+      invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
       items: items.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -602,6 +635,92 @@ export default function CheckoutPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* 2.1 Corporate Invoice */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Kurumsal Fatura</h2>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="corporateInvoice"
+                    checked={formData.corporateInvoice}
+                    onChange={handleInputChange}
+                    className="mt-1 h-4 w-4 text-green-700 focus:ring-green-500"
+                  />
+                  <span className="text-sm font-medium text-gray-900">
+                    Kurumsal fatura istiyorum.
+                  </span>
+                </label>
+
+                {formData.corporateInvoice && (
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+                        Firma Adı <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="companyName"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                          errors.companyName ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Firma Adı"
+                      />
+                      {errors.companyName && (
+                        <p className="mt-1 text-sm text-red-500">{errors.companyName}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="taxNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                          Vergi Numarası <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="taxNumber"
+                          name="taxNumber"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={11}
+                          value={formData.taxNumber}
+                          onChange={handleInputChange}
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                            errors.taxNumber ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Vergi Numarası"
+                        />
+                        {errors.taxNumber && (
+                          <p className="mt-1 text-sm text-red-500">{errors.taxNumber}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="taxOffice" className="block text-sm font-medium text-gray-700 mb-1">
+                          Vergi Dairesi <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="taxOffice"
+                          name="taxOffice"
+                          value={formData.taxOffice}
+                          onChange={handleInputChange}
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                            errors.taxOffice ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Vergi Dairesi"
+                        />
+                        {errors.taxOffice && (
+                          <p className="mt-1 text-sm text-red-500">{errors.taxOffice}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 3. Shipping Method */}

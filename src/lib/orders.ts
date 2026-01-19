@@ -18,6 +18,10 @@ export type CreateOrderInput = {
   note?: string | null;
   payment_method: 'havale' | 'kapida' | 'iyzico' | 'cod';
   shipping_payment_type?: "cash" | "card" | null; // COD tahsilat tipi (nakit/kart)
+  invoice_type?: 'individual' | 'corporate';
+  invoice_company_name?: string | null;
+  invoice_tax_number?: string | null;
+  invoice_tax_office?: string | null;
 };
 
 export async function createOrderWithItems(
@@ -84,6 +88,10 @@ export async function createOrderWithItems(
       payment_status: paymentStatus, // Payment status (awaiting_payment, paid, etc.)
       shipping_payment_type: shippingPaymentType, // COD tahsilat tipi (kontrat gereği her zaman "card")
       total_price: total_price,
+      invoice_type: orderData.invoice_type || 'individual',
+      invoice_company_name: orderData.invoice_company_name || null,
+      invoice_tax_number: orderData.invoice_tax_number || null,
+      invoice_tax_office: orderData.invoice_tax_office || null,
     })
     .select('id')
     .single();
