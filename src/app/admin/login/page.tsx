@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -31,9 +31,13 @@ export default function AdminLoginPage() {
 
     // Set admin_session cookie via API
     try {
+      const accessToken = signInData?.session?.access_token || "";
       const response = await fetch("/api/admin/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
       });
 
       const data = await response.json();

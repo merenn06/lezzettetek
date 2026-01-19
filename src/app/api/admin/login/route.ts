@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(request: Request) {
   try {
@@ -9,7 +13,20 @@ export async function POST(request: Request) {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session) {
+    let authUser = session?.user || null;
+
+    if (!authUser) {
+      const authHeader = request.headers.get("authorization") || "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+      if (token && supabaseUrl && supabaseAnonKey) {
+        const fallbackClient = createClient(supabaseUrl, supabaseAnonKey);
+        const { data } = await fallbackClient.auth.getUser(token);
+        authUser = data?.user || null;
+      }
+    }
+
+    if (!authUser) {
       return NextResponse.json(
         { success: false, error: "Oturum bulunamadı" },
         { status: 401 }
@@ -28,14 +45,14 @@ export async function POST(request: Request) {
       return Array.from(new Set(all));
     };
 
-    const userEmail = (session.user.email || "").trim().toLowerCase();
+    const userEmail = (authUser.email || "").trim().toLowerCase();
     const adminEmails = getAdminEmails();
 
     // Check if user has admin/staff role
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", authUser.id)
       .maybeSingle();
 
     const role = profile?.role ? String(profile.role).trim().toLowerCase() : undefined;
