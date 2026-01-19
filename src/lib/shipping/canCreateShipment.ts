@@ -52,8 +52,9 @@ export function canCreateShipment(order: Order): boolean {
     }
   }
 
-  // Online payment: requires paid status; other methods (COD vb.) payment check'e takılmaz
-  if (isOnline && paymentStatus !== 'paid') {
+  // Online payment: requires paid status; treat legacy "success" as paid
+  const isPaid = paymentStatus === 'paid' || paymentStatus === 'success';
+  if (isOnline && !isPaid) {
     return false;
   }
 

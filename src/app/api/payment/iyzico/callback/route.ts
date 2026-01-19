@@ -162,7 +162,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         status: 'paid',
         payment_provider: 'iyzico',
         payment_token: token,
-        payment_status: 'success',
+        payment_status: 'paid',
         paid_at: new Date().toISOString(),
         iyzico_payment_id: paymentId || null,
       };
