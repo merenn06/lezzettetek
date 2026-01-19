@@ -53,7 +53,9 @@ export function canCreateShipment(order: Order): boolean {
   }
 
   // Online payment: requires paid status; treat legacy "success" as paid
-  const isPaid = paymentStatus === 'paid' || paymentStatus === 'success';
+  const isPaid =
+    paymentStatus === 'paid' ||
+    (paymentStatus as string | null) === 'success';
   if (isOnline && !isPaid) {
     return false;
   }
