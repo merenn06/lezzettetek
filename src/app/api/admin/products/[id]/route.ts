@@ -73,7 +73,7 @@ export async function PUT(
     const { id } = resolvedParams;
 
     const body = await request.json();
-    const { name, slug, price, stock, description, content, image_url } = body;
+    const { name, slug, price, stock, description, content, image_url, image_url_2, unit_price_text, compare_at_price } = body;
 
     // Validation
     if (!name || !slug || typeof price !== "number" || typeof stock !== "number" || !description) {
@@ -104,10 +104,13 @@ export async function PUT(
         name,
         slug,
         price,
+        compare_at_price: typeof compare_at_price === "number" ? compare_at_price : null,
         stock,
         description,
         content: content || null,
         image_url: image_url || null,
+        image_url_2: image_url_2 || null,
+        unit_price_text: unit_price_text?.trim() || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
 import { formatProductContentReact } from '@/lib/formatProductContentReact';
 import ProductReviews from '@/components/ProductReviews';
+import ProductImageSlider from '@/components/ProductImageSlider';
 
 const CATEGORY_STYLES: Record<string, { badge: string; gradient: string }> = {
   kavanoz: { badge: 'bg-green-100 text-green-700', gradient: 'from-green-200 to-green-300' },
@@ -60,6 +60,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   };
 
   const hasPrice = typeof product.price === 'number';
+  const compareAt = typeof product.compare_at_price === 'number' ? product.compare_at_price : null;
+  const hasDiscount = hasPrice && compareAt != null && compareAt > product.price;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -83,14 +85,13 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             {/* Left Column: Product Image */}
             <div className="flex items-center justify-center">
               <div className="w-full aspect-square bg-gradient-to-br from-green-200 to-green-400 rounded-xl shadow-md flex items-center justify-center overflow-hidden relative">
-                {product.image_url ? (
-                  <Image
-                    src={product.image_url}
+                {product.image_url || product.image_url_2 ? (
+                  <ProductImageSlider
+                    images={[product.image_url, product.image_url_2]}
                     alt={product.name}
-                    fill
                     sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover"
-                    priority
+                    className="h-full w-full"
+                    imageClassName="object-cover"
                   />
                 ) : (
                   <p className="text-white text-sm font-medium opacity-90">
@@ -109,11 +110,30 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               {/* Price */}
               {hasPrice && (
-                <div className="mb-4">
+                <div
+                  className={`mb-4 ${
+                    hasDiscount ? 'border border-green-200 rounded-lg p-3' : ''
+                  }`}
+                >
+                  {hasDiscount && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm text-gray-400 line-through">
+                        {formatPrice(compareAt!)} ₺
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 text-[11px] font-semibold px-2 py-0.5">
+                        Kampanyalı
+                      </span>
+                    </div>
+                  )}
                   <span className="text-4xl font-bold text-green-700">
                     {formatPrice(product.price)} ₺
                   </span>
                 </div>
+              )}
+              {product.unit_price_text?.trim() && (
+                <p className="text-sm font-bold text-gray-700 mb-4">
+                  Birim Fiyat: {product.unit_price_text.trim()}
+                </p>
               )}
 
               {/* Product Content Section */}

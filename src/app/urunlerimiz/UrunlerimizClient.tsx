@@ -7,6 +7,7 @@ import type { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
 import PartnersLogos from '@/components/PartnersLogos';
+import ProductImageSlider from '@/components/ProductImageSlider';
 
 const CATEGORY_LABELS: Record<string, string> = {
   kavanoz: 'Kavanoz Ürünler',
@@ -29,11 +30,6 @@ const MICRO_PERSUASION_LINES = [
   'En çok tercih edilen',
 ];
 
-const PRODUCT_BADGES = [
-  { label: '⭐ En Çok Satan', style: 'bg-amber-100 text-amber-800' },
-  { label: '🆕 İlk Kez Alanlar İçin', style: 'bg-blue-100 text-blue-800' },
-  { label: '🎁 Kampanyalı', style: 'bg-rose-100 text-rose-800' },
-];
 
 export default function UrunlerimizClient() {
   const { addItem } = useCart();
@@ -75,12 +71,6 @@ export default function UrunlerimizClient() {
 
   const getProductStyle = () => CATEGORY_STYLES.default;
   const getMicroLine = (index: number) => MICRO_PERSUASION_LINES[index % MICRO_PERSUASION_LINES.length];
-  const getBadgeForIndex = (index: number) => {
-    if (index % 6 === 0) return PRODUCT_BADGES[0];
-    if (index % 6 === 1) return PRODUCT_BADGES[1];
-    if (index % 6 === 2) return PRODUCT_BADGES[2];
-    return null;
-  };
 
   const formatPrice = (price: number) =>
     price.toLocaleString('tr-TR', {
@@ -208,13 +198,16 @@ export default function UrunlerimizClient() {
               {filteredProducts.map((product, index) => {
                 const style = getProductStyle();
                 const hasPrice = typeof product.price === 'number';
+                const compareAt = typeof product.compare_at_price === 'number' ? product.compare_at_price : null;
+                const hasDiscount = hasPrice && compareAt != null && compareAt > product.price;
                 const microLine = getMicroLine(index);
-                const badge = getBadgeForIndex(index);
 
                 return (
                   <div
                     key={product.id}
-                    className="bg-gray-50 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex-col flex"
+                    className={`bg-gray-50 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex-col flex ${
+                      hasDiscount ? 'border-2 border-green-700 hover:shadow-lg' : ''
+                    }`}
                   >
                     {/* Clickable Product Content */}
                     <Link
@@ -223,21 +216,17 @@ export default function UrunlerimizClient() {
                     >
                       {/* Product Image */}
                       <div className={`aspect-square bg-gradient-to-br ${style.gradient} flex items-center justify-center relative overflow-hidden`}>
-                        {badge && (
-                          <span
-                            className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm ${badge.style}`}
-                          >
-                            {badge.label}
+                        {hasDiscount && (
+                          <span className="absolute left-3 top-3 z-10 rounded-full bg-green-700 text-white text-sm font-extrabold px-3 py-1 shadow-md">
+                            Kampanyalı
                           </span>
                         )}
-                        {product.image_url ? (
-                          <Image
-                            src={product.image_url}
+                        {product.image_url || product.image_url_2 ? (
+                          <ProductImageSlider
+                            images={[product.image_url, product.image_url_2]}
                             alt={product.name}
-                            fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                            className="object-cover"
-                            loading="lazy"
+                            className="h-full w-full"
                           />
                         ) : (
                           <svg className={`w-24 h-24 ${style.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,8 +241,22 @@ export default function UrunlerimizClient() {
                           {product.name}
                         </h3>
                         {hasPrice && (
-                          <p className="text-emerald-700 font-semibold text-base mt-1 mb-2">
-                            {formatPrice(product.price)} ₺
+                          <div className="mt-1 mb-2">
+                            {hasDiscount && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm text-gray-400 line-through">
+                                  {formatPrice(compareAt!)} ₺
+                                </span>
+                              </div>
+                            )}
+                            <p className="text-emerald-700 font-bold text-lg">
+                              {formatPrice(product.price)} ₺
+                            </p>
+                          </div>
+                        )}
+                        {product.unit_price_text?.trim() && (
+                          <p className="text-sm font-bold text-gray-700 mb-2">
+                            Birim Fiyat: {product.unit_price_text.trim()}
                           </p>
                         )}
                         <p className="text-xs text-gray-500 mb-2">{microLine}</p>

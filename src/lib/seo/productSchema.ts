@@ -23,13 +23,14 @@ export function generateProductSchema({
 
   // Build image array (ensure absolute URLs)
   const images: string[] = [];
-  if (product.image_url) {
-    if (product.image_url.startsWith('http://') || product.image_url.startsWith('https://')) {
-      images.push(product.image_url);
-    } else if (product.image_url.startsWith('/')) {
-      images.push(`${baseUrl}${product.image_url}`);
+  const imageUrls = [product.image_url, product.image_url_2].filter(Boolean) as string[];
+  for (const imageUrl of imageUrls) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      images.push(imageUrl);
+    } else if (imageUrl.startsWith('/')) {
+      images.push(`${baseUrl}${imageUrl}`);
     } else {
-      images.push(`${baseUrl}/${product.image_url}`);
+      images.push(`${baseUrl}/${imageUrl}`);
     }
   }
 

@@ -29,10 +29,13 @@ export default function AdminUrunlerPage() {
     name: '',
     slug: '',
     price: '',
+    compareAtPrice: '',
     stock: '',
     description: '',
     content: '',
+    unitPriceText: '',
     imageFile: null as File | null,
+    imageFile2: null as File | null,
   });
 
   useEffect(() => {
@@ -101,7 +104,12 @@ export default function AdminUrunlerPage() {
         return;
       }
 
-      setFormData((prev) => ({ ...prev, imageFile: file }));
+      const fieldName = e.target.name;
+      if (fieldName === 'imageFile2') {
+        setFormData((prev) => ({ ...prev, imageFile2: file }));
+      } else {
+        setFormData((prev) => ({ ...prev, imageFile: file }));
+      }
     }
   };
 
@@ -136,6 +144,7 @@ export default function AdminUrunlerPage() {
 
     try {
       let imageUrl: string | null = null;
+      let imageUrl2: string | null = null;
 
       // Upload new image if file is selected
       if (formData.imageFile) {
@@ -161,14 +170,40 @@ export default function AdminUrunlerPage() {
         imageUrl = editingProduct.image_url || null;
       }
 
+      if (formData.imageFile2) {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+        const fileType = formData.imageFile2.type.toLowerCase();
+        const fileName = formData.imageFile2.name.toLowerCase();
+
+        if (fileType === 'image/heic' || fileType === 'image/heif' || fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+          throw new Error('Bu dosya formatı desteklenmiyor. Lütfen JPG veya PNG yükleyin.');
+        }
+
+        if (!allowedTypes.includes(fileType)) {
+          throw new Error('Bu dosya formatı desteklenmiyor. Lütfen JPG veya PNG yükleyin.');
+        }
+
+        imageUrl2 = await uploadImage(formData.imageFile2);
+        if (!imageUrl2) {
+          throw new Error('İkinci görsel yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+        }
+      } else if (editingProduct) {
+        imageUrl2 = editingProduct.image_url_2 || null;
+      }
+
       const productPayload = {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
         price: parseFloat(formData.price),
+        compare_at_price: formData.compareAtPrice.trim()
+          ? parseFloat(formData.compareAtPrice)
+          : null,
         stock: parseInt(formData.stock, 10),
         description: formData.description.trim(),
         content: formData.content.trim() || null,
+        unit_price_text: formData.unitPriceText.trim() || null,
         image_url: imageUrl,
+        image_url_2: imageUrl2,
       };
 
       let response;
@@ -221,10 +256,13 @@ export default function AdminUrunlerPage() {
       name: product.name,
       slug: product.slug,
       price: product.price.toString(),
+      compareAtPrice: product.compare_at_price != null ? String(product.compare_at_price) : '',
       stock: product.stock.toString(),
       description: product.description,
       content: product.content || '',
+      unitPriceText: product.unit_price_text || '',
       imageFile: null,
+      imageFile2: null,
     });
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -260,10 +298,13 @@ export default function AdminUrunlerPage() {
       name: '',
       slug: '',
       price: '',
+      compareAtPrice: '',
       stock: '',
       description: '',
       content: '',
+      unitPriceText: '',
       imageFile: null,
+      imageFile2: null,
     });
     setEditingProduct(null);
     setSlugManuallyEdited(false);
@@ -352,6 +393,38 @@ export default function AdminUrunlerPage() {
               </div>
 
               <div>
+                <label htmlFor="compareAtPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                  Karşılaştırmalı Fiyat (opsiyonel)
+                </label>
+                <input
+                  type="number"
+                  id="compareAtPrice"
+                  name="compareAtPrice"
+                  value={formData.compareAtPrice}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  min="0"
+                  placeholder="Örn: 119.95"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="unitPriceText" className="block text-sm font-medium text-gray-700 mb-1">
+                  Birim Fiyat (metin)
+                </label>
+                <input
+                  type="text"
+                  id="unitPriceText"
+                  name="unitPriceText"
+                  value={formData.unitPriceText}
+                  onChange={handleInputChange}
+                  placeholder="Örn: 59,95 ₺ / adet"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+
+              <div>
                 <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">
                   Stok <span className="text-red-500">*</span>
                 </label>
@@ -383,6 +456,25 @@ export default function AdminUrunlerPage() {
                 {editingProduct && editingProduct.image_url && !formData.imageFile && (
                   <p className="mt-1 text-xs text-gray-500">
                     Mevcut görsel: {editingProduct.image_url}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="imageFile2" className="block text-sm font-medium text-gray-700 mb-1">
+                  Ürün Görseli 2 (opsiyonel)
+                </label>
+                <input
+                  type="file"
+                  id="imageFile2"
+                  name="imageFile2"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+                {editingProduct && editingProduct.image_url_2 && !formData.imageFile2 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Mevcut 2. görsel: {editingProduct.image_url_2}
                   </p>
                 )}
               </div>
