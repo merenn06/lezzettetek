@@ -87,7 +87,7 @@ export default function ToptanSatisClient() {
           </h1>
           <p className="mt-5 text-lg text-gray-700 leading-relaxed">
             Lezzette Tek, zincir marketler ve restoranlar dahil olmak üzere kurumsal
-            işletmeler için güvenilir bir toptan tedarikçidir. Enginar ve diğer konserve
+            işletmeler için güvenilir bir toptan tedarikçidir. Enginar ve diğer kavanoz
             ürünlerini tedarik ediyoruz; şarküteriler de bizden düzenli alım yapabilir.
             Ürün grubunda istikrarlı kalite, düzenli tedarik ve operasyonel kolaylık sunarız.
           </p>
