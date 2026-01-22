@@ -26,7 +26,7 @@ export default async function Home() {
                   alt="Lezzette Tek"
                   width={1000}
                   height={400}
-                  className="h-72 w-auto"
+                  className="h-40 sm:h-52 lg:h-72 w-auto mx-auto lg:mx-0"
                   priority
                 />
               </div>
@@ -55,6 +55,12 @@ export default async function Home() {
                   className="px-8 py-4 bg-white text-green-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-center shadow-md border-2 border-green-700"
                 >
                   Tarifler
+                </Link>
+                <Link
+                  href="/toptan-satis"
+                  className="px-8 py-4 bg-white text-green-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-center shadow-md border-2 border-green-700"
+                >
+                  Toptan Satış
                 </Link>
               </div>
             </div>
