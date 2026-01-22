@@ -1,6 +1,7 @@
 import * as soap from "soap";
 import { createHash } from "crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabase as adminSupabase } from "@/lib/supabaseClient";
 import { canCreateShipment } from "./canCreateShipment";
 import { Order } from "@/types/orders";
 
@@ -1054,7 +1055,7 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
   try {
     console.log(`[shipping-auto] Creating shipment for order: ${orderId}`);
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = adminSupabase ?? (await createSupabaseServerClient());
 
     // Fetch order
     const { data: order, error: orderError } = await supabase
