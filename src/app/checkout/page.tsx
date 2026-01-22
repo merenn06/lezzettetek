@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { calculateShipping } from '@/lib/shipping';
+import { COD_FEE, calculateShipping } from '@/lib/shipping';
 
 // Helper function to execute scripts from HTML content
 function executeScripts(container: HTMLElement) {
@@ -68,7 +68,9 @@ export default function CheckoutPage() {
 
   const subtotal = getTotalPrice();
   const shipping = calculateShipping(subtotal);
-  const total = subtotal + shipping;
+  const isCodPayment = formData.paymentMethod === 'kapida-odeme';
+  const codFee = isCodPayment ? COD_FEE : 0;
+  const total = subtotal + shipping + codFee;
 
   // Render iyzico form content when available
   useEffect(() => {
@@ -424,6 +426,12 @@ export default function CheckoutPage() {
                     {shipping > 0 ? `${formatPrice(shipping)} ₺` : 'Ücretsiz'}
                   </span>
                 </div>
+                {isCodPayment && (
+                  <div className="flex justify-between text-gray-700">
+                    <span>Kapıda Ödeme Bedeli:</span>
+                    <span className="font-semibold">{formatPrice(codFee)} ₺</span>
+                  </div>
+                )}
                 <div className="border-t border-gray-200 pt-4 flex justify-between">
                   <span className="text-lg font-bold text-gray-900">Toplam:</span>
                   <span className="text-2xl font-bold text-green-700">
@@ -762,7 +770,10 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <span className="font-medium text-gray-900">Kapıda Ödeme (Nakit/Kredi Kartı)</span>
                       <p className="text-sm text-gray-500 mt-1">
-                        Ödemenizi teslimat sırasında kargo görevlisine kredi kartı veya nakit ile yapabilirsiniz. 
+                        Ödemenizi teslimat sırasında kargo görevlisine kredi kartı veya nakit ile yapabilirsiniz.
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Kapıda ödeme hizmet bedeli: {formatPrice(COD_FEE)} ₺
                       </p>
                     </div>
                   </label>

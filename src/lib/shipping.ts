@@ -3,6 +3,7 @@
  */
 export const BASE_SHIPPING_FEE = 150.0;
 export const FREE_SHIPPING_THRESHOLD = 750.0;
+export const COD_FEE = 50.0;
 
 /**
  * Calculate shipping fee based on subtotal
@@ -14,6 +15,10 @@ export function calculateShipping(subtotal: number): number {
     return 0;
   }
   return BASE_SHIPPING_FEE;
+}
+
+export function calculateCodFee(isCod: boolean): number {
+  return isCod ? COD_FEE : 0;
 }
 
 /**

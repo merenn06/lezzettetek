@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
-import { calculateShipping } from '@/lib/shipping';
+import { calculateCodFee, calculateShipping } from '@/lib/shipping';
 
 export type OrderItemInput = {
   product_id: string; // UUID
@@ -50,8 +50,11 @@ export async function createOrderWithItems(
   // Calculate shipping fee on server side (don't trust frontend)
   const shippingFee = calculateShipping(subtotal);
   
-  // Total price includes shipping
-  const total_price = subtotal + shippingFee;
+  const isCOD = orderData.payment_method === 'kapida' || orderData.payment_method === 'cod';
+  const codFee = calculateCodFee(isCOD);
+  
+  // Total price includes shipping + COD fee (if applicable)
+  const total_price = subtotal + shippingFee + codFee;
 
   // Insert order - write email to both email and customer_email for backward compatibility
   const customerEmail = orderData.email || null;
@@ -61,7 +64,7 @@ export async function createOrderWithItems(
   // Set payment_status based on payment method
   // COD (kapida or cod) -> awaiting_payment
   // Online (iyzico, havale) -> null (will be set when paid)
-  const isCOD = orderData.payment_method === 'kapida' || orderData.payment_method === 'cod';
+  
   const paymentStatus = isCOD ? 'awaiting_payment' : null;
   
   // Set shipping_payment_type for COD orders

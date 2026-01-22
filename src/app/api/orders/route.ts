@@ -5,6 +5,7 @@ import {
   type OrderItemInput,
 } from "@/lib/orders";
 import { sendOrderConfirmationEmail } from "@/lib/mailer";
+import { calculateCodFee, calculateShipping } from "@/lib/shipping";
 
 type CheckoutRequestBody = {
   customer_name: string;
@@ -167,7 +168,11 @@ export async function POST(req: Request) {
     // Send confirmation email if email is provided
     if (email) {
       try {
-        const totalPrice = mappedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+        const subtotal = mappedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+        const shippingFee = calculateShipping(subtotal);
+        const isCOD = payment_method === "kapida" || payment_method === "cod";
+        const codFee = calculateCodFee(isCOD);
+        const totalPrice = subtotal + shippingFee + codFee;
         await sendOrderConfirmationEmail({
           to: email,
           orderId,
