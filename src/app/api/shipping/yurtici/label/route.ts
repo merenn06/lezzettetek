@@ -1,12 +1,19 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import bwipjs from "bwip-js";
 import { PDFDocument, rgb, degrees } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "node:fs/promises";
 import path from "node:path";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 export async function GET(req: Request) {
   try {
@@ -21,7 +28,13 @@ export async function GET(req: Request) {
       );
     }
 
-    const supabase = await createSupabaseServerClient();
+    if (!supabase) {
+      console.error("[yurtici-label] Supabase service client başlatılamadı");
+      return NextResponse.json(
+        { error: "Supabase client başlatılamadı. Env değişkenlerini kontrol et." },
+        { status: 500 }
+      );
+    }
 
     // Fetch order
     const { data: order, error: orderError } = await supabase
