@@ -56,6 +56,7 @@ export default function Header() {
     { href: "/hakkimizda", label: "Hakkımızda" },
     { href: "/urunlerimiz", label: "Ürünlerimiz" },
     { href: "/tarifler", label: "Tarifler" },
+    { href: "/toptan-satis", label: "Toptan Satış" },
     { href: "/iletisim", label: "İletişim" },
   ];
 
@@ -86,15 +87,15 @@ export default function Header() {
             </Link>
 
             {/* Orta: Desktop Navigation (biraz sola kaydırılmış) */}
-            <nav className="hidden md:flex items-center gap-3 lg:gap-5 ml-12 text-sm flex-1">
+            <nav className="hidden md:flex items-center gap-3 lg:gap-5 ml-12 text-sm flex-1 font-bold">
               {links.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={`relative px-3 pb-2 pt-1 border-b-2 border-transparent text-gray-700 transition-colors duration-150 ${
                     isActive(link.href)
-                      ? "border-green-600 text-green-700"
-                      : "hover:text-green-700 hover:border-green-300"
+                    ? "border-green-600 text-green-700"
+                    : "hover:text-green-700 hover:border-green-300"
                   }`}
                 >
                   {link.label}
@@ -236,7 +237,7 @@ export default function Header() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors ${
+                    className={`block rounded-lg px-3 py-2 text-base font-bold transition-colors ${
                       isActive(link.href)
                         ? "bg-green-700 text-white"
                         : "text-gray-800 hover:bg-green-50 hover:text-green-800"

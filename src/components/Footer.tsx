@@ -46,6 +46,12 @@ Lezzette tek nokta olma yaklaşımımız, tüm üretim anlayışımızın temeli
                 Tarifler
               </Link>
               <Link 
+                href="/toptan-satis" 
+                className="text-gray-600 hover:text-green-700 transition-colors"
+              >
+                Toptan Satış
+              </Link>
+              <Link 
                 href="/iletisim" 
                 className="text-gray-600 hover:text-green-700 transition-colors"
               >

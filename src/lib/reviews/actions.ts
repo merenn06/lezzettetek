@@ -66,6 +66,7 @@ export async function getProductReviews(productId: string, limit: number = 10) {
       user_id: review.user_id,
       rating: review.rating,
       comment: review.comment,
+      image_url: review.image_url ?? null,
       created_at: review.created_at,
       reviewer_name: reviewerName,
     };
@@ -77,7 +78,8 @@ export async function getProductReviews(productId: string, limit: number = 10) {
 export async function addProductReview(
   productId: string,
   rating: number,
-  comment: string
+  comment: string,
+  imageUrl?: string | null
 ) {
   const supabase = await createSupabaseServerClient();
 
@@ -116,6 +118,7 @@ export async function addProductReview(
       user_id: user.id,
       rating,
       comment,
+      image_url: imageUrl || null,
     })
     .select()
     .single();

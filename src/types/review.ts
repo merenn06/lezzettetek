@@ -4,6 +4,7 @@ export type ProductReview = {
   user_id: string;
   rating: number;
   comment: string;
+  image_url?: string | null;
   created_at: string;
   // Joined from profiles
   reviewer_name?: string;

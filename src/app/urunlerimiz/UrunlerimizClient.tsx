@@ -22,15 +22,6 @@ const CATEGORY_STYLES: Record<string, { gradient: string; iconColor: string }> =
   default: { gradient: 'from-green-200 to-green-300', iconColor: 'text-green-700' },
 };
 
-const MICRO_PERSUASION_LINES = [
-  'Siparişle hazırlanır',
-  'Katkı maddesi içermez',
-  'Vakumlu – aç & kullan',
-  'Pişirmeye hazır',
-  'En çok tercih edilen',
-];
-
-
 export default function UrunlerimizClient() {
   const { addItem } = useCart();
   const { triggerAnimation } = useFlyToCart();
@@ -70,8 +61,6 @@ export default function UrunlerimizClient() {
   const filteredProducts = products;
 
   const getProductStyle = () => CATEGORY_STYLES.default;
-  const getMicroLine = (index: number) => MICRO_PERSUASION_LINES[index % MICRO_PERSUASION_LINES.length];
-
   const formatPrice = (price: number) =>
     price.toLocaleString('tr-TR', {
       minimumFractionDigits: 2,
@@ -200,8 +189,6 @@ export default function UrunlerimizClient() {
                 const hasPrice = typeof product.price === 'number';
                 const compareAt = typeof product.compare_at_price === 'number' ? product.compare_at_price : null;
                 const hasDiscount = hasPrice && compareAt != null && compareAt > product.price;
-                const microLine = getMicroLine(index);
-
                 return (
                   <div
                     key={product.id}
@@ -259,7 +246,6 @@ export default function UrunlerimizClient() {
                             Birim Fiyat: {product.unit_price_text.trim()}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500 mb-2">{microLine}</p>
                         <p className="text-gray-600 mb-3 leading-relaxed text-sm line-clamp-2">
                           {product.description}
                         </p>

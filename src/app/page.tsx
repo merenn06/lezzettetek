@@ -19,7 +19,22 @@ export default async function Home() {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Content */}
-            <div className="space-y-8 order-2 lg:order-1">
+            <div className="space-y-8 order-1">
+              <div>
+                <Image
+                  src="/ana-sayfa-logo.webp"
+                  alt="Lezzette Tek"
+                  width={1000}
+                  height={400}
+                  className="h-72 w-auto"
+                  priority
+                />
+              </div>
+              <div className="lg:hidden">
+                <div className="bg-gradient-to-br from-green-100 to-amber-100 rounded-xl p-2 md:p-4 shadow-lg">
+                  <HeroSlider />
+                </div>
+              </div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
                 Doğanın En Taze
                 <span className="block text-green-700">Lezzetleri</span>
@@ -45,7 +60,7 @@ export default async function Home() {
             </div>
             
             {/* Right Side - Hero Slider */}
-            <div className="relative order-1 lg:order-2">
+            <div className="relative order-2 hidden lg:block">
               <div className="bg-gradient-to-br from-green-100 to-amber-100 rounded-xl p-2 md:p-4 shadow-lg">
                 <HeroSlider />
               </div>

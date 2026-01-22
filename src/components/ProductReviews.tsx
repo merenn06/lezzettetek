@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { ProductReview, ReviewStats } from '@/types/review';
 import { addProductReview } from '@/lib/reviews/actions';
@@ -75,8 +76,8 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     }, 100);
   };
 
-  const handleReviewSubmit = async (rating: number, comment: string) => {
-    const result = await addProductReview(productId, rating, comment);
+  const handleReviewSubmit = async (rating: number, comment: string, imageUrl?: string | null) => {
+    const result = await addProductReview(productId, rating, comment, imageUrl);
 
     if (!result.success) {
       const msg = result.error || 'Yorum eklenemedi';
@@ -284,6 +285,17 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                     </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                  {review.image_url && (
+                    <div className="mt-3">
+                      <Image
+                        src={review.image_url}
+                        alt="Yorum görseli"
+                        width={640}
+                        height={640}
+                        className="w-full max-w-sm rounded-lg border border-gray-200"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -311,7 +323,7 @@ function ReviewForm({
   onSubmit,
   onCancel,
 }: {
-  onSubmit: (rating: number, comment: string) => void;
+  onSubmit: (rating: number, comment: string, imageUrl?: string | null) => void;
   onCancel: () => void;
 }) {
   const [rating, setRating] = useState(0);
@@ -319,7 +331,18 @@ function ReviewForm({
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   // Auto-focus textarea when form opens
   useEffect(() => {
@@ -348,10 +371,64 @@ function ReviewForm({
     }
 
     setIsSubmitting(true);
-    await onSubmit(rating, comment);
+    let imageUrl: string | null = null;
+
+    if (imageFile) {
+      try {
+        setIsUploadingImage(true);
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        const uploadRes = await fetch('/api/reviews/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+
+        if (!uploadRes.ok || !uploadData.success) {
+          throw new Error(uploadData.error || 'Görsel yüklenemedi');
+        }
+
+        imageUrl = uploadData.imageUrl;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Görsel yüklenemedi');
+        setIsSubmitting(false);
+        setIsUploadingImage(false);
+        return;
+      } finally {
+        setIsUploadingImage(false);
+      }
+    }
+
+    await onSubmit(rating, comment, imageUrl);
     setIsSubmitting(false);
     setRating(0);
     setComment('');
+    setImageFile(null);
+    setImagePreviewUrl(null);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) {
+      setImageFile(null);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImagePreviewUrl(null);
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Lütfen geçerli bir görsel dosyası seçin.');
+      e.target.value = '';
+      return;
+    }
+
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
   };
 
   const renderStarButtons = () => {
@@ -425,13 +502,39 @@ function ReviewForm({
           </p>
         </div>
 
+        <div>
+          <label htmlFor="review-image" className="block text-sm font-semibold text-gray-700 mb-2">
+            Fotoğraf (opsiyonel)
+          </label>
+          <input
+            id="review-image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            disabled={isSubmitting}
+            className="block w-full text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-gray-200 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-gray-700 hover:file:bg-gray-300"
+          />
+          {imagePreviewUrl && (
+            <div className="mt-3">
+              <Image
+                src={imagePreviewUrl}
+                alt="Seçilen görsel"
+                width={320}
+                height={320}
+                className="w-full max-w-xs rounded-lg border border-gray-200"
+              />
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-1">Maksimum 5MB, JPG/PNG/WebP/GIF</p>
+        </div>
+
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={isSubmitting || rating === 0 || comment.length < 10}
+            disabled={isSubmitting || isUploadingImage || rating === 0 || comment.length < 10}
             className="px-6 py-3 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Gönderiliyor...' : 'Gönder'}
+            {isSubmitting || isUploadingImage ? 'Gönderiliyor...' : 'Gönder'}
           </button>
           <button
             type="button"
