@@ -87,9 +87,9 @@ export default function ToptanSatisClient() {
           </h1>
           <p className="mt-5 text-lg text-gray-700 leading-relaxed">
             Lezzette Tek, zincir marketler ve restoranlar dahil olmak üzere kurumsal
-            işletmeler için güvenilir bir toptan tedarikçidir. Enginar ve zeytinyağlı
-            ürün grubunda istikrarlı kalite, düzenli tedarik ve operasyonel
-            kolaylık sunarız.
+            işletmeler için güvenilir bir toptan tedarikçidir. Enginar ve diğer konserve
+            ürünlerini tedarik ediyoruz; şarküteriler de bizden düzenli alım yapabilir.
+            Ürün grubunda istikrarlı kalite, düzenli tedarik ve operasyonel kolaylık sunarız.
           </p>
           <div className="mt-8">
             <button
@@ -109,6 +109,7 @@ export default function ToptanSatisClient() {
             <h2 className="text-2xl font-bold text-gray-900">Kimler İçin Uygun?</h2>
             <ul className="mt-4 space-y-2 text-gray-700 list-disc list-inside">
               <li>Zincir marketler ve yerel marketler</li>
+              <li>Şarküteriler</li>
               <li>Restoranlar, kafeler ve oteller</li>
               <li>Catering firmaları ve toplu yemek hizmetleri</li>
               <li>Kurumsal mutfaklar ve toplu tüketim noktaları</li>
@@ -123,7 +124,6 @@ export default function ToptanSatisClient() {
               <li>Enginar bazlı ürünler</li>
               <li>Zeytinyağlı hazır yemekler</li>
               <li>Kavanoz ve vakumlu ürünler</li>
-              <li>Dondurulmuş ürün seçenekleri</li>
             </ul>
           </section>
 
