@@ -2,38 +2,37 @@ export const TESLIMAT_VE_IADE_SARTLARI = `**TESLİMAT VE İADE ŞARTLARI**
 
 **1. Teslimat**
 
-* Siparişleriniz, ödeme onayı alındıktan sonra hazırlanır ve kargoya teslim edilir.
-* Kargo teslim süresi, kargo firmasının yoğunluğuna ve teslimat adresine göre değişmekle birlikte genellikle **1–5 iş günü** içerisindedir.
-* Resmî tatiller ve hafta sonları kargo teslimatı yapılmayabilir.
-* Teslimat sırasında alıcının adreste bulunmaması halinde kargo firması paketi şubede bekletebilir; teslim alınmayan gönderiler iade olabilir.
+* Siparişleriniz, ödeme onayı alındıktan sonra hazırlanarak kargoya teslim edilir.
+* Kargo teslim süresi, teslimat adresine ve kargo firmasının yoğunluğuna bağlı olarak genellikle **1–5 iş günü** içerisindedir.
+* Resmî tatiller ve hafta sonlarında teslimat yapılamayabilir.
 
 **2. Kargo Ücretleri**
 
-* Kargo ücreti ve varsa ücretsiz kargo koşulları, ödeme adımında sepet ekranında gösterilir.
+* Kargo ücreti ve varsa ücretsiz kargo koşulları, sipariş oluşturulurken ödeme ekranında açıkça belirtilir.
 
 **3. Teslimat Kontrolü**
 
-* Paketi teslim alırken dış ambalajda ezilme/yırtılma/ıslaklık gibi hasar varsa, kargo görevlisi yanında tutanak tutturarak paketi teslim almayınız.
-* Tutanaksız teslim alınan hasarlı ürünlerden doğabilecek sorunlarda süreç uzayabilir.
+* Teslimat sırasında paketinizi kontrol ediniz.
+* Hasarlı (ezilmiş, yırtılmış, ıslanmış) paketleri kargo görevlisi eşliğinde tutanak tutturarak teslim almayınız.
 
 **4. İade ve Cayma Hakkı**
 
-* Mesafeli satışlarda tüketicinin cayma hakkı bulunmaktadır.
-* **Gıda ürünleri** niteliği gereği ve hijyen/sağlık gerekçeleriyle, ambalajı açılmış/bozulmuş/yeniden satılabilirliği kaybolmuş ürünlerde cayma hakkı istisna kapsamına girebilir.
-* İade talebiniz için bizimle iletişime geçmeniz gerekir.
+* Tüketici, ürünü teslim aldığı tarihten itibaren **14 gün** içinde cayma hakkını kullanabilir.
+* Ancak gıda ürünleri, hijyen ve sağlık gerekçeleriyle ambalajı açılmış, bozulmuş veya yeniden satılabilirliği kaybolmuş olması halinde iade kapsamı dışındadır.
+* Sadece açılmamış, kullanılmamış ve orijinal ambalajı bozulmamış ürünler iade edilebilir.
 
 **5. İade Süreci**
 
-* İade/iptal taleplerinizi e-posta yoluyla iletebilirsiniz.
-* İade onayı verilen ürünler, tarafımızdan bildirilen kargo yöntemiyle gönderilmelidir.
-* İade kargosu satıcıya ulaştıktan sonra inceleme yapılır; uygun bulunması halinde iade işlemi başlatılır.
+* İade talebi için [info@teklezzet.com](mailto:info@teklezzet.com) adresi üzerinden bizimle iletişime geçilmelidir.
+* Onaylanan iadeler, tarafımızdan bildirilen kargo yöntemiyle gönderilmelidir.
+* İade kargo ücreti müşteriye aittir.
 
 **6. Ücret İadesi**
 
-* İade onaylandığında ücret iadesi, ödeme yöntemine göre bankanıza bağlı olarak **1–10 iş günü** içinde hesabınıza yansıyabilir.
-
-**İletişim**
-E-posta: [info@teklezzet.com](mailto:info@teklezzet.com)`;
+* İade edilen ürünün satıcıya ulaşmasından sonra gerekli kontroller yapılır.
+* İade onaylandığında, ücret iadesi en geç **7 gün** içinde ödeme yapılan yönteme bağlı olarak müşterinin hesabına aktarılır.
+* Bankaya bağlı olarak bu süre **1–10 iş günü** içinde yansıyabilir.
+`;
 
 export const GIZLILIK_SOZLESMESI = `**GİZLİLİK SÖZLEŞMESİ**
 
