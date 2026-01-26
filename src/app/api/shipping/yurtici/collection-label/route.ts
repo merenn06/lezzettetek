@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import * as soap from "soap";
 import { createHash } from "crypto";
 import bwipjs from "bwip-js";
@@ -9,6 +9,13 @@ import { PDFDocument, rgb, degrees } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "node:fs/promises";
 import path from "node:path";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 /**
  * Fetches collection label (tahsilat etiketi) from Yurtiçi using documentId
@@ -155,7 +162,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "orderId gerekli" }, { status: 400 });
     }
 
-    const supabase = await createSupabaseServerClient();
+    if (!supabase) {
+      console.error("[yurtici-collection-label] Supabase service client başlatılamadı");
+      return NextResponse.json(
+        { error: "Supabase client başlatılamadı. Env değişkenlerini kontrol et." },
+        { status: 500 }
+      );
+    }
 
     // Fetch order
     const { data: order, error: orderError } = await supabase
