@@ -17,6 +17,8 @@ export type Order = {
   payment_method: PaymentMethod;
   status: OrderStatus;
   total_price: number;
+  campaign_code?: string | null;
+  discount_amount?: number | null;
   // Optional shipping fields (populated once shipment is created)
   shipping_carrier?: string | null;
   shipping_tracking_number?: string | null;

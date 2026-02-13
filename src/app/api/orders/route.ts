@@ -6,6 +6,11 @@ import {
 } from "@/lib/orders";
 import { sendOrderConfirmationEmail } from "@/lib/mailer";
 import { calculateCodFee, calculateShipping } from "@/lib/shipping";
+import {
+  calculateCouponDiscount,
+  normalizeCoupon,
+  roundCurrency,
+} from "@/lib/coupons";
 
 type CheckoutRequestBody = {
   customer_name: string;
@@ -21,6 +26,7 @@ type CheckoutRequestBody = {
   invoice_company_name?: string | null;
   invoice_tax_number?: string | null;
   invoice_tax_office?: string | null;
+  couponCode?: string | null;
   items: Array<{
     product_id: string;
     product_name: string;
@@ -127,6 +133,7 @@ export async function POST(req: Request) {
       invoice_company_name = null,
       invoice_tax_number = null,
       invoice_tax_office = null,
+      couponCode = null,
       items,
     } = body as CheckoutRequestBody;
 
@@ -147,6 +154,14 @@ export async function POST(req: Request) {
       quantity: item.quantity,
     }));
 
+    const subtotal = mappedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+    const shippingFee = calculateShipping(subtotal);
+    const isCOD = payment_method === "kapida" || payment_method === "cod";
+    const codFee = calculateCodFee(isCOD);
+    const normalizedCoupon = normalizeCoupon(couponCode);
+    const couponResult = calculateCouponDiscount(subtotal + shippingFee, normalizedCoupon);
+    const totalPrice = roundCurrency(couponResult.totalAfterDiscount + codFee);
+
     const orderData: CreateOrderInput = {
       customer_name,
       phone,
@@ -161,6 +176,8 @@ export async function POST(req: Request) {
       invoice_company_name,
       invoice_tax_number,
       invoice_tax_office,
+      campaign_code: couponResult.normalizedCoupon,
+      discount_amount: couponResult.discountAmount,
     };
 
     const { orderId } = await createOrderWithItems(orderData, mappedItems);
@@ -168,11 +185,6 @@ export async function POST(req: Request) {
     // Send confirmation email if email is provided
     if (email) {
       try {
-        const subtotal = mappedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-        const shippingFee = calculateShipping(subtotal);
-        const isCOD = payment_method === "kapida" || payment_method === "cod";
-        const codFee = calculateCodFee(isCOD);
-        const totalPrice = subtotal + shippingFee + codFee;
         await sendOrderConfirmationEmail({
           to: email,
           orderId,

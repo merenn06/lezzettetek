@@ -5,6 +5,12 @@ import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { COD_FEE, calculateShipping } from '@/lib/shipping';
+import {
+  COUPON_CODE,
+  calculateCouponDiscount,
+  normalizeCoupon,
+  roundCurrency,
+} from '@/lib/coupons';
 
 // Helper function to execute scripts from HTML content
 function executeScripts(container: HTMLElement) {
@@ -29,6 +35,9 @@ export default function CheckoutPage() {
   const [showIyzicoForm, setShowIyzicoForm] = useState(false);
   const [iyzicoFormContent, setIyzicoFormContent] = useState<string | null>(null);
   const iyzicoContainerRef = useRef<HTMLDivElement>(null);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -70,7 +79,10 @@ export default function CheckoutPage() {
   const shipping = calculateShipping(subtotal);
   const isCodPayment = formData.paymentMethod === 'kapida-odeme';
   const codFee = isCodPayment ? COD_FEE : 0;
-  const total = subtotal + shipping + codFee;
+  const baseTotal = subtotal + shipping;
+  const couponResult = calculateCouponDiscount(baseTotal, appliedCoupon);
+  const discountAmount = couponResult.discountAmount;
+  const total = roundCurrency(couponResult.totalAfterDiscount + codFee);
 
   // Render iyzico form content when available
   useEffect(() => {
@@ -109,6 +121,23 @@ export default function CheckoutPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleApplyCoupon = () => {
+    const normalized = normalizeCoupon(couponInput);
+    if (!normalized) {
+      setAppliedCoupon(null);
+      setCouponError('Kupon kodu giriniz.');
+      return;
+    }
+
+    if (normalized === COUPON_CODE) {
+      setAppliedCoupon(COUPON_CODE);
+      setCouponError(null);
+    } else {
+      setAppliedCoupon(null);
+      setCouponError('Geçersiz kupon kodu.');
+    }
   };
 
   const validateForm = (): boolean => {
@@ -197,6 +226,7 @@ export default function CheckoutPage() {
           invoice_company_name: formData.corporateInvoice ? formData.companyName.trim() : null,
           invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
           invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
+          couponCode: appliedCoupon,
           items: items.map((item) => ({
             product_id: item.product.id,
             product_name: item.product.name,
@@ -278,6 +308,7 @@ export default function CheckoutPage() {
       invoice_company_name: formData.corporateInvoice ? formData.companyName.trim() : null,
       invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
       invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
+      couponCode: appliedCoupon,
       items: items.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -426,6 +457,47 @@ export default function CheckoutPage() {
                     {shipping > 0 ? `${formatPrice(shipping)} ₺` : 'Ücretsiz'}
                   </span>
                 </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700" htmlFor="coupon-code">
+                    Kupon Kodu
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="coupon-code"
+                      type="text"
+                      value={couponInput}
+                      onChange={(e) => {
+                        setCouponInput(e.target.value);
+                        if (couponError) {
+                          setCouponError(null);
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      placeholder="Kupon kodu"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+                    >
+                      Uygula
+                    </button>
+                  </div>
+                  {appliedCoupon && (
+                    <p className="text-sm text-green-700">
+                      Kupon uygulandı: {COUPON_CODE} (%{couponResult.discountPercent})
+                    </p>
+                  )}
+                  {couponError && (
+                    <p className="text-sm text-red-600">{couponError}</p>
+                  )}
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-green-700">
+                    <span>İndirim:</span>
+                    <span className="font-semibold">- {formatPrice(discountAmount)} ₺</span>
+                  </div>
+                )}
                 {isCodPayment && (
                   <div className="flex justify-between text-gray-700">
                     <span>Kapıda Ödeme Bedeli:</span>

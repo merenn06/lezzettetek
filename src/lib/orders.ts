@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { calculateCodFee, calculateShipping } from '@/lib/shipping';
+import { calculateCouponDiscount, roundCurrency } from '@/lib/coupons';
 
 export type OrderItemInput = {
   product_id: string; // UUID
@@ -22,6 +23,8 @@ export type CreateOrderInput = {
   invoice_company_name?: string | null;
   invoice_tax_number?: string | null;
   invoice_tax_office?: string | null;
+  campaign_code?: string | null;
+  discount_amount?: number | null;
 };
 
 export async function createOrderWithItems(
@@ -52,9 +55,13 @@ export async function createOrderWithItems(
   
   const isCOD = orderData.payment_method === 'kapida' || orderData.payment_method === 'cod';
   const codFee = calculateCodFee(isCOD);
-  
-  // Total price includes shipping + COD fee (if applicable)
-  const total_price = subtotal + shippingFee + codFee;
+
+  const baseTotal = subtotal + shippingFee;
+  const couponResult = calculateCouponDiscount(baseTotal, orderData.campaign_code);
+  const discountAmount = couponResult.discountAmount;
+
+  // Total price includes shipping, minus discount, plus COD fee (if applicable)
+  const total_price = roundCurrency(couponResult.totalAfterDiscount + codFee);
 
   // Insert order - write email to both email and customer_email for backward compatibility
   const customerEmail = orderData.email || null;
@@ -91,6 +98,8 @@ export async function createOrderWithItems(
       payment_status: paymentStatus, // Payment status (awaiting_payment, paid, etc.)
       shipping_payment_type: shippingPaymentType, // COD tahsilat tipi (kontrat gereği her zaman "card")
       total_price: total_price,
+      campaign_code: couponResult.normalizedCoupon,
+      discount_amount: discountAmount,
       invoice_type: orderData.invoice_type || 'individual',
       invoice_company_name: orderData.invoice_company_name || null,
       invoice_tax_number: orderData.invoice_tax_number || null,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { getIyzipayClient, createCheckoutForm, formatIyzicoDate } from '@/lib/iyzico/client';
 import type { IyzicoCheckoutFormRequest } from '@/lib/iyzico/types';
+import { calculateCouponDiscount, roundCurrency } from '@/lib/coupons';
 
 const sb = supabase!;
 
@@ -74,9 +75,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     // Calculate shipping fee on server side
     const { calculateShipping } = await import('@/lib/shipping');
     const SHIPPING_FEE = calculateShipping(subtotal);
-    const totalPrice = subtotal + SHIPPING_FEE;
+    const baseTotal = subtotal + SHIPPING_FEE;
+    const couponResult = calculateCouponDiscount(baseTotal, order.campaign_code);
+    const totalPrice = roundCurrency(couponResult.totalAfterDiscount);
 
-    console.log('[iyzico-initialize] Price calculation - Subtotal:', subtotal, 'Shipping:', SHIPPING_FEE, 'Total:', totalPrice);
+    console.log('[iyzico-initialize] Price calculation - Subtotal:', subtotal, 'Shipping:', SHIPPING_FEE, 'Discount:', couponResult.discountAmount, 'Total:', totalPrice);
 
     // Build callback URL dynamically from request headers
     // For reverse proxy (prod): use x-forwarded-proto and x-forwarded-host
@@ -171,6 +174,16 @@ export async function POST(req: NextRequest): Promise<Response> {
         category2: 'Kargo',
         itemType: 'PHYSICAL',
         price: SHIPPING_FEE.toFixed(2),
+      });
+    }
+    if (couponResult.discountAmount > 0) {
+      basketItems.push({
+        id: 'discount',
+        name: `İndirim (${couponResult.discountPercent}%)`,
+        category1: 'İndirim',
+        category2: 'Kampanya',
+        itemType: 'VIRTUAL',
+        price: (-couponResult.discountAmount).toFixed(2),
       });
     }
 
