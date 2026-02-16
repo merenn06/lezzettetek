@@ -40,6 +40,41 @@ export function generateProductSchema({
     priceCurrency: 'TRY',
     availability: 'https://schema.org/InStock',
     url: `${baseUrl}/urunlerimiz/${product.slug}`,
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: 150,
+        currency: 'TRY',
+      },
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: 'TR',
+      },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 1,
+          maxValue: 2,
+          unitCode: 'DAY',
+        },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 1,
+          maxValue: 5,
+          unitCode: 'DAY',
+        },
+      },
+    },
+    hasMerchantReturnPolicy: {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'TR',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: 14,
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/ReturnShippingFees',
+    },
   };
 
   if (typeof product.price === 'number' && product.price > 0) {
@@ -55,7 +90,12 @@ export function generateProductSchema({
     sku: product.id || product.slug,
     brand: {
       '@type': 'Brand',
-      name: 'Lezzette Tek',
+      name: 'Lezzettek',
+    },
+    seller: {
+      '@type': 'Organization',
+      name: 'Lezzettek',
+      url: 'https://lezzettetek.com',
     },
     offers,
   };
