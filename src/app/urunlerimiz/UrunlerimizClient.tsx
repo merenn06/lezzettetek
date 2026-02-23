@@ -191,8 +191,8 @@ export default function UrunlerimizClient() {
                               <div className="flex items-baseline gap-3">
                                 <span className="relative inline-block text-red-600 text-base md:text-lg font-semibold">
                                   <span className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
-                                    <span className="absolute top-1/2 h-[3px] w-[80%] -translate-y-1/2 bg-red-600 rotate-45 rounded-full mx-auto" />
-                                    <span className="absolute top-1/2 h-[3px] w-[80%] -translate-y-1/2 bg-red-600 -rotate-45 rounded-full mx-auto" />
+                                    <span className="absolute top-1/2 h-[3px] w-[50%] -translate-y-1/2 bg-red-600 rotate-45 rounded-full mx-auto" />
+                                    <span className="absolute top-1/2 h-[3px] w-[50%] -translate-y-1/2 bg-red-600 -rotate-45 rounded-full mx-auto" />
                                   </span>
                                   {formatPrice(compareAt!)} ₺
                                 </span>
