@@ -116,8 +116,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   }`}
                 >
                   {hasDiscount && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm text-gray-400 line-through">
+                    <div className="flex items-baseline gap-3 mb-1 flex-wrap">
+                      <span className="relative inline-block text-red-600 text-lg font-semibold">
+                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
+                          <span className="absolute top-1/2 h-[3px] w-[80%] -translate-y-1/2 bg-red-600 rotate-45 rounded-full mx-auto" />
+                          <span className="absolute top-1/2 h-[3px] w-[80%] -translate-y-1/2 bg-red-600 -rotate-45 rounded-full mx-auto" />
+                        </span>
                         {formatPrice(compareAt!)} ₺
                       </span>
                       <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 text-[11px] font-semibold px-2 py-0.5">
@@ -125,7 +129,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       </span>
                     </div>
                   )}
-                  <span className="text-4xl font-bold text-green-700">
+                  <span className="text-4xl font-bold text-green-700 block">
                     {formatPrice(product.price)} ₺
                   </span>
                 </div>

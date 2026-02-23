@@ -34,6 +34,7 @@ export default function AdminUrunlerPage() {
     description: '',
     content: '',
     unitPriceText: '',
+    origin: '',
     imageFile: null as File | null,
     imageFile2: null as File | null,
   });
@@ -202,6 +203,7 @@ export default function AdminUrunlerPage() {
         description: formData.description.trim(),
         content: formData.content.trim() || null,
         unit_price_text: formData.unitPriceText.trim() || null,
+        origin: formData.origin.trim() || null,
         image_url: imageUrl,
         image_url_2: imageUrl2,
       };
@@ -261,6 +263,7 @@ export default function AdminUrunlerPage() {
       description: product.description,
       content: product.content || '',
       unitPriceText: product.unit_price_text || '',
+      origin: product.origin || '',
       imageFile: null,
       imageFile2: null,
     });
@@ -303,6 +306,7 @@ export default function AdminUrunlerPage() {
       description: '',
       content: '',
       unitPriceText: '',
+      origin: '',
       imageFile: null,
       imageFile2: null,
     });
@@ -420,6 +424,21 @@ export default function AdminUrunlerPage() {
                   value={formData.unitPriceText}
                   onChange={handleInputChange}
                   placeholder="Örn: 59,95 ₺ / adet"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">
+                  Menşei
+                </label>
+                <input
+                  type="text"
+                  id="origin"
+                  name="origin"
+                  value={formData.origin}
+                  onChange={handleInputChange}
+                  placeholder="Örn: İzmir Urla"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
               </div>

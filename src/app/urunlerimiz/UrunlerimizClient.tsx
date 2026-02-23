@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import type { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
@@ -74,67 +73,21 @@ export default function UrunlerimizClient() {
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
             Ürünlerimiz
           </h1>
-          <div className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-            <p className="font-semibold text-gray-900">
-              El Yapımı &amp; Katkısız Konserveler
-            </p>
-            <p className="mt-2">
-              Raf ürünü gibi değil. Siparişle hazırlanır, vakumlu paketlenir.
+          <div className="text-lg md:text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="font-semibold text-red-600 text-2xl md:text-3xl">
+              Ev Yapımı Kavanoz Ürünler
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm md:text-base text-gray-700">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
                 🚚 1–3 günde kargo
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
-                🌿 Katkı &amp; koruyucu yok
-              </span>
+          
               <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
                 🇹🇷 Yerli üretim
               </span>
             </div>
           </div>
 
-          {/* Sabit kampanya banner + /kampanyalar linki */}
-          <div className="mt-10 flex justify-center">
-            <div className="w-full max-w-5xl">
-              <Link href="/kampanyalar" className="block group">
-                <div className="relative w-full">
-                  {/* Masaüstü Banner */}
-                  <div className="hidden md:block">
-                    <Image
-                      src="/masaustu-kampanya-banner.webp"
-                      alt="Kampanya bannerı"
-                      width={1600}
-                      height={500}
-                      className="w-full h-auto rounded-2xl shadow-lg object-cover"
-                      priority
-                    />
-                  </div>
-                  {/* Mobil Banner */}
-                  <div className="block md:hidden">
-                    <Image
-                      src="/mobil-kampanya-banner.webp"
-                      alt="Kampanya bannerı - mobil"
-                      width={800}
-                      height={800}
-                      className="w-full h-auto rounded-2xl shadow-lg object-cover"
-                    />
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-col items-center gap-1">
-                  <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-semibold px-3 py-1">
-                    Kampanyalar
-                  </span>
-                  <span className="inline-flex items-center text-sm font-semibold text-green-700 group-hover:text-green-800">
-                    Detayları gör
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </div>
-              </Link>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -227,18 +180,31 @@ export default function UrunlerimizClient() {
                         <h3 className="text-lg font-semibold mb-1.5 text-gray-900">
                           {product.name}
                         </h3>
+                        {product.origin && (
+                          <p className="text-base text-gray-900 mb-1.5">
+                            Menşei: {product.origin}
+                          </p>
+                        )}
                         {hasPrice && (
                           <div className="mt-1 mb-2">
-                            {hasDiscount && (
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm text-gray-400 line-through">
+                            {hasDiscount ? (
+                              <div className="flex items-baseline gap-3">
+                                <span className="relative inline-block text-red-600 text-base md:text-lg font-semibold">
+                                  <span className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
+                                    <span className="absolute top-1/2 h-[3px] w-[80%] -translate-y-1/2 bg-red-600 rotate-45 rounded-full mx-auto" />
+                                    <span className="absolute top-1/2 h-[3px] w-[80%] -translate-y-1/2 bg-red-600 -rotate-45 rounded-full mx-auto" />
+                                  </span>
                                   {formatPrice(compareAt!)} ₺
                                 </span>
+                                <p className="text-emerald-700 font-bold text-xl">
+                                  {formatPrice(product.price)} ₺
+                                </p>
                               </div>
+                            ) : (
+                              <p className="text-emerald-700 font-bold text-lg">
+                                {formatPrice(product.price)} ₺
+                              </p>
                             )}
-                            <p className="text-emerald-700 font-bold text-lg">
-                              {formatPrice(product.price)} ₺
-                            </p>
                           </div>
                         )}
                         {product.unit_price_text?.trim() && (

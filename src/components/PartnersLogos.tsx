@@ -6,7 +6,7 @@ import Image from 'next/image';
 const partners = [
   { name: 'Carrefour', src: '/carrefour-new-seeklogo.webp' },
   { name: 'Çağrı Hipermarket', src: '/cagri-hipermarket-seeklogo.webp' },
-  { name: 'Happy Center', src: '/happy-center-seeklogo.webp' },
+  { name: 'Happy Center', src: '/Anpa%20Gross_idjQF839_j_0.webp' },
   { name: 'Develi Restaurant', src: '/develi-restaurant-seeklogo.webp' },
   { name: 'Volkan Arpacı', src: '/volkanarpaci.webp' },
   { name: 'Kim Market', src: '/kim-market-seeklogo.webp' },

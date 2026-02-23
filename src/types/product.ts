@@ -10,6 +10,7 @@ export type Product = {
   image_url_2?: string | null;
   unit_price_text?: string | null;
   content?: string | null;
+  origin?: string | null;
   // Optional fields that may exist in Supabase but are not mandatory for UI
   created_at?: string;
   updated_at?: string;

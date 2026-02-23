@@ -66,7 +66,19 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, slug, price, stock, description, content, image_url, image_url_2, unit_price_text, compare_at_price } = body;
+    const {
+      name,
+      slug,
+      price,
+      stock,
+      description,
+      content,
+      image_url,
+      image_url_2,
+      unit_price_text,
+      compare_at_price,
+      origin,
+    } = body;
 
     // Validation
     if (!name || !slug || typeof price !== "number" || typeof stock !== "number" || !description) {
@@ -103,6 +115,7 @@ export async function POST(request: Request) {
         image_url: image_url || null,
         image_url_2: image_url_2 || null,
         unit_price_text: unit_price_text?.trim() || null,
+        origin: origin?.trim() || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
