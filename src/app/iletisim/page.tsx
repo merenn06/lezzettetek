@@ -219,8 +219,8 @@ export default function Iletisim() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">Telefon</h3>
                     <p className="text-gray-600">
-                      <a href="tel:+905317039591" className="hover:text-green-700 transition-colors">
-                        +90 (531) 703 95 91
+                      <a href="tel:+905532350634" className="hover:text-green-700 transition-colors">
+                        05532350634
                       </a>
                     </p>
                     <p className="text-gray-600">
@@ -246,8 +246,8 @@ export default function Iletisim() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">E-posta</h3>
                     <p className="text-gray-600">
-                      <a href="mailto:info@enginarbahcesi.com" className="hover:text-green-700 transition-colors">
-                        info@enginarbahcesi.com
+                      <a href="mailto:info@teklezzet.com" className="hover:text-green-700 transition-colors">
+                        info@teklezzet.com
                       </a>
                     </p>
                   </div>

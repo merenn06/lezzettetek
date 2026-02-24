@@ -23,7 +23,7 @@ export default async function Home() {
               <div>
                 <Image
                   src="/ana-sayfa-logo.webp"
-                  alt="Lezzette Tek"
+                  alt="Tek Lezzet"
                   width={1000}
                   height={400}
                   className="h-40 sm:h-52 lg:h-72 w-auto mx-auto lg:mx-0"
@@ -40,7 +40,7 @@ export default async function Home() {
                 <span className="block text-green-700">Lezzetleri</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-700 leading-relaxed max-w-lg">
-                Lezzette Tek olarak, doğal ve katkısız ürünlerimizle sofralarınıza sağlık ve lezzet getiriyoruz. 
+                Tek Lezzet olarak, doğal ve katkısız ürünlerimizle sofralarınıza sağlık ve lezzet getiriyoruz. 
                 Yerli üretim, kaliteli içerik.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">

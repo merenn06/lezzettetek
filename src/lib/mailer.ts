@@ -77,7 +77,7 @@ export async function sendOrderStatusEmail({
       </div>
       <p>Siparişinizle ilgili tüm bilgilere web sitemizden ulaşabilirsiniz.</p>
       <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-        Lezzette Tek<br>
+        Tek Lezzet<br>
         Bu e-posta otomatik olarak gönderilmiştir.
       </p>
     </div>
@@ -95,7 +95,7 @@ Yeni Durum: ${statusLabel}
 
 Siparişinizle ilgili tüm bilgilere web sitemizden ulaşabilirsiniz.
 
-Lezzette Tek
+Tek Lezzet
 Bu e-posta otomatik olarak gönderilmiştir.
   `.trim();
 
@@ -200,7 +200,7 @@ export async function sendOrderConfirmationEmail({
         </tfoot>
       </table>
       <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-        Lezzette Tek<br>
+        Tek Lezzet<br>
         Bu e-posta otomatik olarak gönderilmiştir.
       </p>
     </div>
@@ -220,7 +220,7 @@ ${items.map((item) => `- ${item.product_name} x${item.quantity} = ${(item.quanti
 
 Toplam: ${totalPrice.toFixed(2)} ₺
 
-Lezzette Tek
+Tek Lezzet
 Bu e-posta otomatik olarak gönderilmiştir.
   `.trim();
 

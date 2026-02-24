@@ -74,11 +74,11 @@ export async function GET() {
   const items = (data as ProductRow[] | null)
     ?.map((product) => {
       const id = product.id ? String(product.id) : "";
-      const title = product.name?.trim() || "Lezzette Tek Ürün";
+      const title = product.name?.trim() || "Tek Lezzet Ürün";
       const description =
         product.description?.trim() ||
         product.content?.trim() ||
-        "Lezzette Tek doğal ve taze ürün";
+        "Tek Lezzet doğal ve taze ürün";
       const slug = product.slug?.trim() || "";
       const link = toAbsoluteUrl(`/urunlerimiz/${slug}`, baseUrl);
 
@@ -113,7 +113,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>Lezzette Tek</title>
+    <title>Tek Lezzet</title>
     <link>${escapeXml(baseUrl)}</link>
     <description>Ürün feed</description>${items}
   </channel>

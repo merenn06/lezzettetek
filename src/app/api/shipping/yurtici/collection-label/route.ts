@@ -387,7 +387,7 @@ export async function GET(req: Request) {
     const titleSizeMm = 3.5;
     const titleSize = mmToPt(titleSizeMm);
     yPos -= titleSize + lineSpacing;
-    const titleText = "Lezzette Tek - Tahsilat Etiketi";
+    const titleText = "Tek Lezzet - Tahsilat Etiketi";
     page.drawText(titleText, {
       x: getCenteredX(titleText, titleSize),
       y: yPos,
@@ -594,8 +594,8 @@ export async function GET(req: Request) {
     // Single label per page, exact 100mm x 80mm (landscape) - EXACT MATCH to physical label
     // No rotation, no scaling required - 1:1 match
     pdfDoc.setTitle(`Yurtiçi Tahsilat Etiketi - ${documentId}`);
-    pdfDoc.setCreator("Lezzette Tek");
-    pdfDoc.setProducer("Lezzette Tek Label Generator");
+    pdfDoc.setCreator("Tek Lezzet");
+    pdfDoc.setProducer("Tek Lezzet Label Generator");
     
     // Ensure only ONE page in PDF
     if (pdfDoc.getPageCount() > 1) {

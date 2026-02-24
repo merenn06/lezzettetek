@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Left Column: Brand Summary */}
           <div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-900">Lezzette Tek</h3>
+            <h3 className="text-2xl font-bold mb-4 text-gray-900">Tek Lezzet</h3>
             <p className="text-gray-600 leading-relaxed">
             Doğal içerikler, yerli üretim ve özenli bir hazırlık süreciyle ürünlerimizi güvenle sunuyoruz.
 Katkısız yapıyı, kalite standartlarını ve istikrarlı lezzeti ön planda tutuyoruz.
@@ -78,10 +78,10 @@ Lezzette tek nokta olma yaklaşımımız, tüm üretim anlayışımızın temeli
               </p>
               <p className="text-gray-600">
                 <a 
-                  href="tel:+905317039591" 
+                  href="tel:+905532350634" 
                   className="hover:text-green-700 transition-colors"
                 >
-                  +90 (531) 703 95 91
+                  05532350634
                 </a>
               </p>
               <p className="text-gray-600">
@@ -159,7 +159,7 @@ Lezzette tek nokta olma yaklaşımımız, tüm üretim anlayışımızın temeli
         <div className="border-t border-gray-200 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-600">
-              © 2025 Lezzette Tek. Tüm hakları saklıdır.
+              © 2025 Tek Lezzet. Tüm hakları saklıdır.
             </p>
             <nav className="flex flex-wrap justify-center gap-4 text-sm">
               <Link 

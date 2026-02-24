@@ -1,4 +1,4 @@
-# Lezzette Tek
+# Tek Lezzet
 
 Marketing-style e-commerce website built with Next.js 15, TypeScript, and Tailwind CSS.
 

@@ -78,7 +78,7 @@ export default function Header() {
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
               <Image
                 src="/brand-logo.webp"
-                alt="Lezzette Tek"
+                alt="Tek Lezzet"
                 width={200}
                 height={56}
                 className="h-12 w-auto md:h-14"

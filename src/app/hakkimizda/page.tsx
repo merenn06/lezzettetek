@@ -10,7 +10,7 @@ export default function Hakkimizda() {
       year: '2014',
       title: 'Kuruluş',
       description:
-        'Doğal ve güvenilir gıdaya olan ihtiyacımızdan yola çıkarak Lezzette Tek markasının temellerini attık.',
+        'Doğal ve güvenilir gıdaya olan ihtiyacımızdan yola çıkarak Tek Lezzet markasının temellerini attık.',
     },
     {
       year: '2015',
@@ -41,7 +41,7 @@ export default function Hakkimizda() {
             Hakkımızda
           </h1>
           <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-            Lezzette Tek, doğanın en taze ve kaliteli ürünlerini sofralarınıza getirmek için 
+            Tek Lezzet, doğanın en taze ve kaliteli ürünlerini sofralarınıza getirmek için 
             kurulmuş bir markadır. Doğallıktan ödün vermeden, yerli üretimle kaliteyi birleştiriyoruz.
           </p>
         </div>
@@ -56,7 +56,7 @@ export default function Hakkimizda() {
               <div className="relative aspect-video rounded-xl overflow-hidden shadow-lg">
                 <iframe
                   src="https://www.youtube.com/embed/5sBXGb7iHVQ?rel=0&modestbranding=1"
-                  title="Lezzette Tek Hakkında Video"
+                  title="Tek Lezzet Hakkında Video"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="absolute inset-0 w-full h-full"
@@ -76,7 +76,7 @@ export default function Hakkimizda() {
                 <p>
                   <strong className="text-gray-900">2014 yılında, doğal ve güvenilir gıdaya duyduğumuz ihtiyacı</strong> merkeze
                   alarak yola çıktık. Amacımız, <strong className="text-gray-900">doğanın sunduğu lezzetleri en saf haliyle korumak</strong> ve
-                  bu değeri sofralara taşımaktı. Bugün <strong className="text-gray-900">Lezzette Tek</strong> olarak, bu anlayışla hazırladığımız
+                  bu değeri sofralara taşımaktı. Bugün <strong className="text-gray-900">Tek Lezzet</strong> olarak, bu anlayışla hazırladığımız
                   ürünleri aynı özenle sunmaya devam ediyoruz.
                 </p>
 
@@ -106,7 +106,7 @@ export default function Hakkimizda() {
                 <div className="relative aspect-square bg-white rounded-xl shadow-md overflow-hidden">
                   <Image
                     src="/hakkimizda.webp"
-                    alt="Lezzette Tek Marka Görseli"
+                    alt="Tek Lezzet Marka Görseli"
                     fill
                     className="object-contain"
                     sizes="(min-width: 1024px) 480px, (min-width: 768px) 400px, 100vw"
@@ -169,7 +169,7 @@ export default function Hakkimizda() {
             </div>
             
             <p className="text-gray-700 leading-relaxed mb-6 text-lg">
-              Lezzette Tek, Tarım ve Orman Bakanlığı'na kayıtlı bir işletme olarak,
+              Tek Lezzet, Tarım ve Orman Bakanlığı'na kayıtlı bir işletme olarak,
               gıda güvenliği ve ilgili mevzuatlara uygun şekilde üretim yapmaktadır.
             </p>
 

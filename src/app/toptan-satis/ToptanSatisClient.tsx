@@ -1,15 +1,38 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+
+const STAND_SLIDES = [
+  {
+    src: "/stantttt/e9f3a51f-3f05-4093-bd31-db39a8739bb6.webp",
+    alt: "Tek Lezzet ürünlerinin market standı üzerinde sergilenmesi",
+  },
+  {
+    src: "/stantttt/WhatsApp Image 2026-02-24 at 12.51.03.webp",
+    alt: "Tek Lezzet kavanoz ürünlerinin raf yerleşimi örneği",
+  },
+  {
+    src: "/stantttt/WhatsApp Image 2026-02-24 at 12.58.21.webp",
+    alt: "Tek Lezzet kavanoz ürünlerinin raf yerleşimi örneği",
+  },
+  {
+    src: "/stantttt/WhatsApp Image 2026-02-24 at 13.02.48.webp",
+    alt: "Tek Lezzet kavanoz ürünlerinin raf yerleşimi örneği",
+  }
+
+];
 
 export default function ToptanSatisClient() {
   const [isOpen, setIsOpen] = useState(false);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isStandModalOpen, setIsStandModalOpen] = useState(false);
 
   const whatsappMessage = useMemo(
     () =>
-      "Merhaba, Lezzette Tek toptan satış için fiyat teklifi almak istiyorum. Firma adım: __ / Şehir: __ / Tahmini aylık alım: __.",
+      "Merhaba, Tek Lezzet toptan satış için fiyat teklifi almak istiyorum. Firma adım: __ / Şehir: __ / Tahmini aylık alım: __.",
     []
   );
 
@@ -26,7 +49,6 @@ export default function ToptanSatisClient() {
     }
 
     lastFocusedRef.current = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
 
     const focusable = getFocusableElements(modalRef.current);
     if (focusable.length > 0) {
@@ -68,11 +90,50 @@ export default function ToptanSatisClient() {
     document.addEventListener("keydown", onKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       document.removeEventListener("keydown", onKeyDown);
       lastFocusedRef.current?.focus();
     };
   }, [isOpen]);
+
+  // Autoplay for stand slider (5 saniye)
+  useEffect(() => {
+    if (STAND_SLIDES.length <= 1) return;
+
+    const interval = window.setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % STAND_SLIDES.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // Stand slider zoom modal: ESC ve ok tuşları
+  useEffect(() => {
+    if (!isStandModalOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsStandModalOpen(false);
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setActiveSlide((prev) => (prev + 1) % STAND_SLIDES.length);
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setActiveSlide((prev) =>
+          prev === 0 ? STAND_SLIDES.length - 1 : prev - 1
+        );
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isStandModalOpen]);
 
   return (
     <main className="bg-white">
@@ -82,15 +143,17 @@ export default function ToptanSatisClient() {
             Kurumsal Tedarik
           </p>
           <h1 className="mt-3 text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-            Marketler, Restoranlar ve İşletmeler İçin Toptan Enginar ve Zeytinyağlı Ürün
-            Tedariki
+            Tek Lezzet Firması Olarak Toptan Hizmet Verdiğimiz Müşteri Portföyleri
           </h1>
-          <p className="mt-5 text-lg text-gray-700 leading-relaxed">
-            Lezzette Tek, zincir marketler ve restoranlar dahil olmak üzere kurumsal
-            işletmeler için güvenilir bir toptan tedarikçidir. Enginar ve diğer kavanoz
-            ürünlerini tedarik ediyoruz; şarküteriler de bizden düzenli alım yapabilir.
-            Ürün grubunda istikrarlı kalite, düzenli tedarik ve operasyonel kolaylık sunarız.
-          </p>
+          <ol className="mt-5 text-lg text-gray-700 leading-relaxed list-decimal pl-6 space-y-2">
+  <li>Zincir Marketler ve Yerel Marketler</li>
+  <li>Manavlar</li>
+  <li>Restoranlar</li>
+  <li>Oteller</li>
+  <li>Şarküteriler</li>
+  <li>Yemekhaneler ve Catering Firmaları</li>
+  <li>Meyve ve Sebze Halleri</li>
+</ol>
           <div className="mt-8">
             <button
               type="button"
@@ -102,6 +165,221 @@ export default function ToptanSatisClient() {
           </div>
         </div>
       </section>
+
+      {/* Saha Uygulamaları & Market Standları Slider */}
+      {STAND_SLIDES.length > 0 && (
+        <section className="py-10 md:py-14">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Saha Uygulamalarımız &amp; Market Standlarımız
+              </h2>
+              <p className="mt-2 text-gray-700">
+                Ürünlerimizin raf ve stant yerleşimlerinden örnekler.
+              </p>
+            </div>
+
+            <div
+              className="relative w-full max-w-4xl mx-auto"
+              aria-roledescription="carousel"
+              aria-label="Saha uygulamaları ve market standı görselleri"
+            >
+              <div
+                className="relative w-full overflow-hidden rounded-xl shadow-lg bg-black group cursor-pointer"
+                onClick={() => setIsStandModalOpen(true)}
+              >
+                <div className="relative w-full pb-[56.25%] transition-transform duration-300 group-hover:scale-105">
+                  <Image
+                    key={STAND_SLIDES[activeSlide]?.src}
+                    src={STAND_SLIDES[activeSlide]?.src}
+                    alt={STAND_SLIDES[activeSlide]?.alt}
+                    fill
+                    className="object-cover"
+                    loading="lazy"
+                  />
+                </div>
+
+                {/* Sol ok */}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setActiveSlide((prev) =>
+                      prev === 0 ? STAND_SLIDES.length - 1 : prev - 1
+                    );
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 text-gray-800 shadow-md hover:bg-white transition-colors"
+                  aria-label="Önceki görsel"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* Sağ ok */}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setActiveSlide(
+                      (prev) => (prev + 1) % STAND_SLIDES.length
+                    );
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 text-gray-800 shadow-md hover:bg-white transition-colors"
+                  aria-label="Sonraki görsel"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Dots navigation */}
+              <div className="mt-4 flex justify-center gap-2">
+                {STAND_SLIDES.map((slide, index) => (
+                  <button
+                    key={slide.src}
+                    type="button"
+                    onClick={() => setActiveSlide(index)}
+                    className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                      index === activeSlide
+                        ? "bg-green-700"
+                        : "bg-gray-300 hover:bg-gray-400"
+                    }`}
+                    aria-label={`Görsel ${index + 1}`}
+                    aria-pressed={index === activeSlide}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Stand görselleri için fullscreen zoom modal */}
+      {isStandModalOpen && STAND_SLIDES.length > 0 && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center h-screen w-screen bg-black/90"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Saha uygulamaları ve market standı görsel önizleme"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsStandModalOpen(false);
+            }
+          }}
+        >
+          {/* Kapat butonu */}
+          <button
+            type="button"
+            onClick={() => setIsStandModalOpen(false)}
+            className="absolute top-6 right-6 z-[10000] rounded-full bg-white/80 p-2 text-gray-800 shadow-md hover:bg-white transition-colors"
+            aria-label="Görsel önizlemeyi kapat"
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          <div className="relative max-w-5xl w-full flex items-center justify-center px-4">
+            <div className="relative rounded-xl overflow-hidden bg-black">
+              <Image
+                key={STAND_SLIDES[activeSlide]?.src}
+                src={STAND_SLIDES[activeSlide]?.src}
+                alt={STAND_SLIDES[activeSlide]?.alt}
+                width={1920}
+                height={1080}
+                className="max-h-[90vh] w-auto object-contain"
+                loading="lazy"
+              />
+
+              {/* Sol ok - modal içi */}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveSlide((prev) =>
+                    prev === 0 ? STAND_SLIDES.length - 1 : prev - 1
+                  );
+                }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-3 text-gray-800 shadow-md hover:bg-white transition-colors"
+                aria-label="Önceki görsele geç"
+              >
+                <svg
+                  className="h-6 w-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Sağ ok - modal içi */}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveSlide(
+                    (prev) => (prev + 1) % STAND_SLIDES.length
+                  );
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-3 text-gray-800 shadow-md hover:bg-white transition-colors"
+                aria-label="Sonraki görsele geç"
+              >
+                <svg
+                  className="h-6 w-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-5xl space-y-10">
@@ -128,7 +406,7 @@ export default function ToptanSatisClient() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900">Neden Lezzette Tek?</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Neden Tek Lezzet?</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-gray-200 p-5">
                 <h3 className="font-semibold text-gray-900">Sürdürülebilir Tedarik</h3>

@@ -22,8 +22,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Lezzette Tek",
-  description: "Lezzette Tek - Doğal ve Taze Ürünler",
+  title: "Tek Lezzet",
+  description: "Tek Lezzet - Doğal ve Taze Ürünler",
   verification: {
     google: "kMWicVXQeB6XgXuaE8VyEbIaXPF1_vvNU2CWEaKVxOI",
   },
