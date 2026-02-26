@@ -20,7 +20,7 @@ export default async function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Content */}
             <div className="space-y-8 order-1">
-              <div>
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3">
                 <Image
                   src="/ana-sayfa-logo.webp"
                   alt="Tek Lezzet"
@@ -29,6 +29,31 @@ export default async function Home() {
                   className="h-40 sm:h-52 lg:h-72 w-auto mx-auto lg:mx-0"
                   priority
                 />
+
+                {/* Tek Lezzet Trendyol'da Banner */}
+                <a
+                  href="https://www.trendyol.com/magaza/tek-lezzet-m-332261?channelId=1&sst=0&sk=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-5 py-2 shadow-sm hover:shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
+                  aria-label="Tek Lezzet Trendyol resmi mağazasını ziyaret et"
+                >
+                  <Image
+                    src="/trendyol-seeklogo.webp"
+                    alt="Trendyol logosu"
+                    width={100}
+                    height={32}
+                    className="h-8 w-auto"
+                  />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-base font-semibold text-gray-900">
+                      Tek Lezzet Trendyol'da
+                    </span>
+                    <span className="text-xs text-gray-600">
+                      Resmi mağazamızı ziyaret edin →
+                    </span>
+                  </div>
+                </a>
               </div>
               <div className="lg:hidden">
                 <div className="bg-gradient-to-br from-green-100 to-amber-100 rounded-xl p-2 md:p-4 shadow-lg">

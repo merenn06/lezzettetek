@@ -75,16 +75,18 @@ export default function Header() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Sol: Logo */}
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <Image
-                src="/brand-logo.webp"
-                alt="Tek Lezzet"
-                width={200}
-                height={56}
-                className="h-12 w-auto md:h-14"
-                priority
-              />
-            </Link>
+            <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
+              <Link href="/" className="flex items-center gap-2">
+                <Image
+                  src="/brand-logo.webp"
+                  alt="Tek Lezzet"
+                  width={200}
+                  height={56}
+                  className="h-12 w-auto md:h-14"
+                  priority
+                />
+              </Link>
+            </div>
 
             {/* Orta: Desktop Navigation (biraz sola kaydırılmış) */}
             <nav className="hidden md:flex items-center gap-3 lg:gap-5 ml-12 text-sm flex-1 font-bold">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import PartnersLogos from "@/components/PartnersLogos";
 
 const STAND_SLIDES = [
   {
@@ -145,26 +146,50 @@ export default function ToptanSatisClient() {
           <h1 className="mt-3 text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
             Tek Lezzet Firması Olarak Toptan Hizmet Verdiğimiz Müşteri Portföyleri
           </h1>
-          <ol className="mt-5 text-lg text-gray-700 leading-relaxed list-decimal pl-6 space-y-2">
-  <li>Zincir Marketler ve Yerel Marketler</li>
-  <li>Manavlar</li>
-  <li>Restoranlar</li>
-  <li>Oteller</li>
-  <li>Şarküteriler</li>
-  <li>Yemekhaneler ve Catering Firmaları</li>
-  <li>Meyve ve Sebze Halleri</li>
-</ol>
-          <div className="mt-8">
-            <button
-              type="button"
-              onClick={() => setIsOpen(true)}
-              className="inline-flex items-center justify-center rounded-xl bg-green-700 px-6 py-3 text-white font-semibold shadow-sm hover:bg-green-800 transition-colors"
+
+          <div className="mt-5 md:mt-6 md:flex md:items-center md:justify-between md:gap-10">
+            <ol className="text-lg text-gray-700 leading-relaxed list-decimal pl-6 space-y-2 md:mt-0 md:flex-1">
+              <li>Zincir Marketler ve Yerel Marketler</li>
+              <li>Manavlar</li>
+              <li>Restoranlar</li>
+              <li>Oteller</li>
+              <li>Şarküteriler</li>
+              <li>Yemekhaneler ve Catering Firmaları</li>
+              <li>Meyve ve Sebze Halleri</li>
+              <li>Yurt Dışı İhracat</li>
+            </ol>
+
+            {/* Güven satırı - Trendyol */}
+            <a
+              href="https://www.trendyol.com/magaza/tek-lezzet-m-332261?channelId=1&sst=0&sk=1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 md:mt-0 inline-flex flex-wrap items-center gap-3 text-sm text-gray-700 font-medium hover:underline transition duration-200 md:flex-1 md:max-w-xs md:self-center"
             >
-              Toptan Fiyat Teklifi Al
-            </button>
+              <span className="inline-flex items-center">
+                <Image
+                  src="/trendyol-seeklogo.webp"
+                  alt="Trendyol logosu"
+                  width={80}
+                  height={20}
+                  className="h-5 w-auto"
+                />
+              </span>
+              <span className="flex flex-col text-left leading-tight">
+                <span>Tek Lezzet, Trendyol'da da aktif satış yapmaktadır.</span>
+                <span className="text-xs text-gray-500">
+                  Resmi mağazamızı ziyaret edin →
+                </span>
+              </span>
+            </a>
           </div>
         </div>
       </section>
+
+      {/* Lezzetlerimizi Tercih Eden İş Ortaklarımız - Logo Bölümü */}
+      <div className="mt-10 md:mt-12">
+        <PartnersLogos />
+      </div>
 
       {/* Saha Uygulamaları & Market Standları Slider */}
       {STAND_SLIDES.length > 0 && (
@@ -275,6 +300,19 @@ export default function ToptanSatisClient() {
           </div>
         </section>
       )}
+
+      {/* CTA - Toptan Fiyat Teklifi Al (Sayfa altı) */}
+      <section className="py-12 px-4 bg-white">
+        <div className="container mx-auto max-w-5xl text-center">
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="inline-flex items-center justify-center rounded-xl bg-green-700 px-8 py-4 text-white text-base md:text-lg font-semibold shadow-md hover:bg-green-800 transition-colors"
+          >
+            Toptan Fiyat Teklifi Al
+          </button>
+        </div>
+      </section>
 
       {/* Stand görselleri için fullscreen zoom modal */}
       {isStandModalOpen && STAND_SLIDES.length > 0 && (

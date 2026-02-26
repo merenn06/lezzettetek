@@ -77,6 +77,29 @@ export default function UrunlerimizClient() {
             <p className="font-semibold text-red-600 text-2xl md:text-3xl">
               Ev Yapımı Kavanoz Ürünler
             </p>
+
+            {/* Güven Satırı - Trendyol */}
+            <a
+              href="https://www.trendyol.com/magaza/tek-lezzet-m-332261?channelId=1&sst=0&sk=1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center gap-3 text-base md:text-lg font-semibold text-gray-800 hover:underline transition duration-200"
+            >
+              <span className="inline-flex items-center">
+                <img
+                  src="/trendyol-seeklogo.webp"
+                  alt="Trendyol logosu"
+                  className="h-6 w-auto"
+                />
+              </span>
+              <span className="flex flex-col text-left leading-tight">
+                <span>Tek Lezzet Trendyol'da da satışta</span>
+                <span className="text-xs md:text-sm text-gray-500 font-normal">
+                  Resmi mağazamızı ziyaret edin →
+                </span>
+              </span>
+            </a>
+
             <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm md:text-base text-gray-700">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
                 🚚 1–3 günde kargo

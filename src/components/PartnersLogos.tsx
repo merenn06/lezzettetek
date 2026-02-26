@@ -1,21 +1,23 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Fragment } from 'react';
 import Image from 'next/image';
 
 const partners = [
   { name: 'Carrefour', src: '/carrefour-new-seeklogo.webp' },
   { name: 'Çağrı Hipermarket', src: '/cagri-hipermarket-seeklogo.webp' },
   { name: 'Happy Center', src: '/Anpa%20Gross_idjQF839_j_0.webp' },
-  { name: 'Develi Restaurant', src: '/develi-restaurant-seeklogo.webp' },
-  { name: 'Volkan Arpacı', src: '/volkanarpaci.webp' },
   { name: 'Kim Market', src: '/kim-market-seeklogo.webp' },
   { name: 'Onur', src: '/onur.webp' },
   { name: 'Özkuruşlar', src: '/ozkuruslar.webp' },
   { name: 'Showmar', src: '/showmar.webp' },
   { name: 'Biçen', src: '/bicen.webp' },
-  { name: 'Titanic', src: '/titanic-logo_2020-08-12T20_08_57.656924.webp' },
   { name: 'Sarıyer Market', src: '/sariyermarket.webp' },
+  { name: 'Gurme Garaj', src: '/gurmegarajlogo.webp' },
+  { name: 'Şok Market', src: '/sok-super-market-seeklogo.webp' },
+  { name: 'Develi Restaurant', src: '/develi-restaurant-seeklogo.webp' },
+  { name: 'Volkan Arpacı', src: '/volkanarpaci.webp' },
+  { name: 'Titanic', src: '/titanic-logo_2020-08-12T20_08_57.656924.webp' },
 ];
 
 // Autoplay speed constant (pixels per frame)
@@ -215,50 +217,54 @@ export default function PartnersLogos() {
             {/* Flex row container with logo items */}
             <div ref={innerRef} className="flex gap-4 md:gap-6 px-4 md:px-8">
               {/* First list (for seamless loop) */}
-              <div className="flex gap-4 md:gap-6 flex-shrink-0">
+              <div className="flex gap-4 md:gap-6 flex-shrink-0 items-center">
                 {partners.map((partner, index) => (
-                  <div
-                    key={`first-${partner.src}-${index}`}
-                    className="flex-shrink-0 min-w-[140px] md:min-w-[180px] h-16 md:h-20"
-                  >
-                    {/* Logo Chip Container */}
-                    <div className="w-full h-full bg-white/70 rounded-xl px-5 py-3 flex items-center justify-center transition-all duration-300 hover:scale-[1.05] hover:brightness-110">
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={partner.src}
-                          alt={partner.name}
-                          fill
-                          className="object-contain opacity-100"
-                          sizes="(max-width: 768px) 140px, 180px"
-                          priority={false}
-                        />
+                  <Fragment key={`first-${partner.src}-${index}`}>
+                    {partner.name === 'Develi Restaurant' && (
+                      <div className="hidden md:block w-px h-10 bg-black opacity-50 mx-8" />
+                    )}
+                    <div className="flex-shrink-0 min-w-[140px] md:min-w-[180px] h-16 md:h-20">
+                      {/* Logo Chip Container */}
+                      <div className="w-full h-full bg-white/70 rounded-xl px-5 py-3 flex items-center justify-center transition-all duration-300 hover:scale-[1.05] hover:brightness-110">
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={partner.src}
+                            alt={partner.name}
+                            fill
+                            className="object-contain opacity-100"
+                            sizes="(max-width: 768px) 140px, 180px"
+                            priority={false}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Fragment>
                 ))}
               </div>
               
               {/* Duplicated list for seamless loop */}
-              <div className="flex gap-4 md:gap-6 flex-shrink-0">
+              <div className="flex gap-4 md:gap-6 flex-shrink-0 items-center">
                 {partners.map((partner, index) => (
-                  <div
-                    key={`second-${partner.src}-${index}`}
-                    className="flex-shrink-0 min-w-[140px] md:min-w-[180px] h-16 md:h-20"
-                  >
-                    {/* Logo Chip Container */}
-                    <div className="w-full h-full bg-white/70 rounded-xl px-5 py-3 flex items-center justify-center transition-all duration-300 hover:scale-[1.05] hover:brightness-110">
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={partner.src}
-                          alt={partner.name}
-                          fill
-                          className="object-contain opacity-100"
-                          sizes="(max-width: 768px) 140px, 180px"
-                          priority={false}
-                        />
+                  <Fragment key={`second-${partner.src}-${index}`}>
+                    {partner.name === 'Develi Restaurant' && (
+                      <div className="hidden md:block w-px h-10 bg-black opacity-50 mx-8" />
+                    )}
+                    <div className="flex-shrink-0 min-w-[140px] md:min-w-[180px] h-16 md:h-20">
+                      {/* Logo Chip Container */}
+                      <div className="w-full h-full bg-white/70 rounded-xl px-5 py-3 flex items-center justify-center transition-all duration-300 hover:scale-[1.05] hover:brightness-110">
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={partner.src}
+                            alt={partner.name}
+                            fill
+                            className="object-contain opacity-100"
+                            sizes="(max-width: 768px) 140px, 180px"
+                            priority={false}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Fragment>
                 ))}
               </div>
             </div>
