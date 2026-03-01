@@ -431,7 +431,7 @@ export default function ToptanSatisClient() {
                 {wholesaleProducts.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/urunlerimiz/${product.slug}`}
+                    href={`/toptan/${product.slug}`}
                     className="block bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col"
                   >
                     {/* Ürün görseli */}
@@ -456,7 +456,7 @@ export default function ToptanSatisClient() {
                       {/* Fiyat alanı */}
                       <div className="mt-4">
                         <p className="text-xs text-gray-500">
-                          Adres Teslim Fiyatı
+                          +%1 KDV
                         </p>
                         <p className="mt-1 text-2xl font-bold text-gray-900">
                           ₺{formatPrice(product.price)}
