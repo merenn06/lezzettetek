@@ -73,13 +73,7 @@ export default async function Home() {
                   href="/urunlerimiz"
                   className="px-8 py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors text-center shadow-md"
                 >
-                  Ürünlerimiz
-                </Link>
-                <Link
-                  href="/tarifler"
-                  className="px-8 py-4 bg-white text-green-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-center shadow-md border-2 border-green-700"
-                >
-                  Tarifler
+                  Perakende Satış Ürünlerimiz
                 </Link>
                 <Link
                   href="/toptan-satis"

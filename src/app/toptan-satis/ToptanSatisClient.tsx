@@ -400,7 +400,6 @@ export default function ToptanSatisClient() {
             <div className="space-y-2 text-sm text-gray-700 leading-relaxed">
               <p>3&apos;lü koli bazlı fiyatlandırma uygulanmaktadır.</p>
               <p>Tüm ürünlerimiz adres teslim olarak sevk edilmektedir.</p>
-              <p>Fiyatlar KDV dahildir.</p>
               <p>İstanbul bölgesi için özel fiyatlandırma sunulmaktadır.</p>
             </div>
           </div>
