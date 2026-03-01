@@ -53,10 +53,10 @@ export default function Header() {
 
   const links = [
     { href: "/", label: "Ana Sayfa" },
-    { href: "/hakkimizda", label: "Hakkımızda" },
-    { href: "/urunlerimiz", label: "Ürünlerimiz" },
-    { href: "/tarifler", label: "Tarifler" },
+    { href: "/urunlerimiz", label: "Perakende Satış Ürünlerimiz" },
     { href: "/toptan-satis", label: "Toptan Satış" },
+    { href: "/tarifler", label: "Tarifler" },
+    { href: "/hakkimizda", label: "Hakkımızda" },
     { href: "/iletisim", label: "İletişim" },
   ];
 
@@ -78,7 +78,7 @@ export default function Header() {
             <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
               <Link href="/" className="flex items-center gap-2">
                 <Image
-                  src="/brand-logo.webp"
+                  src="/ana-sayfa-logo.webp"
                   alt="Tek Lezzet"
                   width={200}
                   height={56}

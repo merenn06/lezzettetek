@@ -37,7 +37,7 @@ Lezzette tek nokta olma yaklaşımımız, tüm üretim anlayışımızın temeli
                 href="/urunlerimiz" 
                 className="text-gray-600 hover:text-green-700 transition-colors"
               >
-                Ürünlerimiz
+                Ürünlerimiz - Perakende Satış
               </Link>
               <Link 
                 href="/tarifler" 

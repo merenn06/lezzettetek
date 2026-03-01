@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import PartnersLogos from "@/components/PartnersLogos";
+import type { Product } from "@/types/product";
+import { useCart } from "@/contexts/CartContext";
+import { useFlyToCart } from "@/contexts/FlyToCartContext";
 
 const STAND_SLIDES = [
   {
@@ -20,8 +24,19 @@ const STAND_SLIDES = [
   {
     src: "/stantttt/WhatsApp Image 2026-02-24 at 13.02.48.webp",
     alt: "Tek Lezzet kavanoz ürünlerinin raf yerleşimi örneği",
-  }
-
+  },
+  {
+    src: "/stantozkurus.webp",
+    alt: "Tek Lezzet ürünlerinin Özkuruşlar market standında sergilenmesi",
+  },
+  {
+    src: "/stantcar.webp",
+    alt: "Tek Lezzet ürünlerinin Carrefour market standında sergilenmesi",
+  },
+  {
+    src: "/stantyuvarlakcar.webp",
+    alt: "Tek Lezzet ürünlerinin Carrefour yuvarlak standında sergilenmesi",
+  },
 ];
 
 export default function ToptanSatisClient() {
@@ -30,6 +45,13 @@ export default function ToptanSatisClient() {
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [isStandModalOpen, setIsStandModalOpen] = useState(false);
+
+  const { addItem } = useCart();
+  const { triggerAnimation } = useFlyToCart();
+
+  const [wholesaleProducts, setWholesaleProducts] = useState<Product[]>([]);
+  const [wholesaleLoading, setWholesaleLoading] = useState<boolean>(true);
+  const [wholesaleError, setWholesaleError] = useState<string | null>(null);
 
   const whatsappMessage = useMemo(
     () =>
@@ -41,6 +63,12 @@ export default function ToptanSatisClient() {
     const encoded = encodeURIComponent(whatsappMessage);
     return `https://wa.me/905532350634?text=${encoded}`;
   }, [whatsappMessage]);
+
+  const formatPrice = (price: number) =>
+    price.toLocaleString("tr-TR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   const closeModal = () => setIsOpen(false);
 
@@ -135,6 +163,66 @@ export default function ToptanSatisClient() {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isStandModalOpen]);
+
+  // 3'lü koli bazlı ürünler için listeyi yükle
+  useEffect(() => {
+    const fetchWholesaleProducts = async () => {
+      try {
+        const response = await fetch("/api/wholesale-products", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error("Ürünler yüklenemedi");
+        }
+        const data = await response.json();
+        const rawProducts: any[] = Array.isArray(data?.products)
+          ? (data.products as any[])
+          : [];
+
+        const mapped: Product[] = rawProducts.map((item) => {
+          const name: string = item.name ?? "";
+          const description: string = item.description ?? "";
+          const image_url: string = item.image_url ?? "";
+          const total_weight: string | null =
+            typeof item.total_weight === "string" && item.total_weight.trim()
+              ? item.total_weight.trim()
+              : null;
+
+          const unit_price_text = total_weight ?? null;
+
+          const product: Product = {
+            id: item.id,
+            name,
+            slug: item.slug,
+            price: Number(item.price) || 0,
+            compare_at_price: null,
+            stock: 999999,
+            description,
+            image_url,
+            image_url_2: null,
+            unit_price_text,
+            content: null,
+            origin: null,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+          };
+
+          return product;
+        });
+
+        setWholesaleProducts(mapped);
+      } catch (error) {
+        console.error("Toptan ürünleri çekerken hata:", error);
+        setWholesaleError(
+          "Toptan ürünler yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin."
+        );
+      } finally {
+        setWholesaleLoading(false);
+      }
+    };
+
+    fetchWholesaleProducts();
+  }, []);
 
   return (
     <main className="bg-white">
@@ -300,6 +388,120 @@ export default function ToptanSatisClient() {
           </div>
         </section>
       )}
+
+      {/* Toptan satış bilgilendirme kutusu + ürün grid */}
+      <section className="bg-white py-10 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative bg-white rounded-2xl shadow-sm p-8 max-w-4xl mx-auto mt-10 mb-12 border border-green-600/30 hover:border-green-700/50 transition duration-200">
+            <p className="text-xs tracking-widest text-gray-500 uppercase mb-4">
+              Toptan Satış Koşulları
+            </p>
+
+            <div className="space-y-2 text-sm text-gray-700 leading-relaxed">
+              <p>3&apos;lü koli bazlı fiyatlandırma uygulanmaktadır.</p>
+              <p>Tüm ürünlerimiz adres teslim olarak sevk edilmektedir.</p>
+              <p>Fiyatlar KDV dahildir.</p>
+              <p>İstanbul bölgesi için özel fiyatlandırma sunulmaktadır.</p>
+            </div>
+          </div>
+
+          {wholesaleLoading && (
+            <div className="text-center text-gray-600 py-8">
+              Toptan ürünler yükleniyor...
+            </div>
+          )}
+
+          {wholesaleError && !wholesaleLoading && (
+            <div className="text-center text-red-600 font-semibold py-8">
+              {wholesaleError}
+            </div>
+          )}
+
+          {!wholesaleLoading &&
+            !wholesaleError &&
+            wholesaleProducts.length === 0 && (
+              <div className="text-center text-gray-600 py-8">
+                Şu anda listelenecek toptan ürün bulunamadı.
+              </div>
+            )}
+
+          {!wholesaleLoading &&
+            !wholesaleError &&
+            wholesaleProducts.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                {wholesaleProducts.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/urunlerimiz/${product.slug}`}
+                    className="block bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col"
+                  >
+                    {/* Ürün görseli */}
+                    <div className="relative w-full aspect-square overflow-hidden rounded-t-xl bg-gray-100">
+                      {product.image_url && (
+                        <Image
+                          src={product.image_url}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      )}
+                    </div>
+
+                    {/* İçerik alanı */}
+                    <div className="p-5 flex-1 flex flex-col">
+                      <h3 className="font-semibold text-lg text-gray-900">
+                        {product.name}
+                      </h3>
+
+                      {/* Fiyat alanı */}
+                      <div className="mt-4">
+                        <p className="text-xs text-gray-500">
+                          Adres Teslim Fiyatı
+                        </p>
+                        <p className="mt-1 text-2xl font-bold text-gray-900">
+                          ₺{formatPrice(product.price)}
+                        </p>
+                      </div>
+
+                      {/* Sepete ekle butonu */}
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const buttonRect =
+                              e.currentTarget.getBoundingClientRect();
+                            const startX =
+                              buttonRect.left + buttonRect.width / 2;
+                            const startY =
+                              buttonRect.top + buttonRect.height / 2;
+
+                            try {
+                              triggerAnimation(startX, startY);
+                            } catch (animationError) {
+                              console.warn(
+                                "Animation error:",
+                                animationError
+                              );
+                            }
+
+                            addItem(product);
+                          }}
+                          className="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-800 transition-colors"
+                        >
+                          Sepete Ekle
+                        </button>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+        </div>
+      </section>
 
       {/* CTA - Toptan Fiyat Teklifi Al (Sayfa altı) */}
       <section className="py-12 px-4 bg-white">

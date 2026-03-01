@@ -4,7 +4,9 @@ import { useEffect, useRef, Fragment } from 'react';
 import Image from 'next/image';
 
 const partners = [
+  // Market zincirleri (ayırıcıdan önce)
   { name: 'Carrefour', src: '/carrefour-new-seeklogo.webp' },
+  { name: 'Migros', src: '/migros.webp' },
   { name: 'Çağrı Hipermarket', src: '/cagri-hipermarket-seeklogo.webp' },
   { name: 'Happy Center', src: '/Anpa%20Gross_idjQF839_j_0.webp' },
   { name: 'Kim Market', src: '/kim-market-seeklogo.webp' },
@@ -15,9 +17,16 @@ const partners = [
   { name: 'Sarıyer Market', src: '/sariyermarket.webp' },
   { name: 'Gurme Garaj', src: '/gurmegarajlogo.webp' },
   { name: 'Şok Market', src: '/sok-super-market-seeklogo.webp' },
+  { name: 'Nezih Gurme', src: '/nezihgurme.webp' },
+  { name: 'Köylüce', src: '/koyluce.webp' },
+
+  // Diğer iş ortakları (ayırıcıdan sonra)
   { name: 'Develi Restaurant', src: '/develi-restaurant-seeklogo.webp' },
   { name: 'Volkan Arpacı', src: '/volkanarpaci.webp' },
   { name: 'Titanic', src: '/titanic-logo_2020-08-12T20_08_57.656924.webp' },
+  { name: 'Ekol', src: '/ekol.webp' },
+  { name: 'Çiya', src: '/ciya.webp' },
+  { name: 'Fil Catering', src: '/filcatering.webp' },
 ];
 
 // Autoplay speed constant (pixels per frame)
@@ -246,7 +255,7 @@ export default function PartnersLogos() {
               <div className="flex gap-4 md:gap-6 flex-shrink-0 items-center">
                 {partners.map((partner, index) => (
                   <Fragment key={`second-${partner.src}-${index}`}>
-                    {partner.name === 'Develi Restaurant' && (
+                    {(partner.name === 'Develi Restaurant' || partner.name === 'Carrefour') && (
                       <div className="hidden md:block w-px h-10 bg-black opacity-50 mx-8" />
                     )}
                     <div className="flex-shrink-0 min-w-[140px] md:min-w-[180px] h-16 md:h-20">
