@@ -205,6 +205,7 @@ export default function ToptanSatisClient() {
             origin: null,
             created_at: item.created_at,
             updated_at: item.updated_at,
+            is_wholesale: true,
           };
 
           return product;
@@ -401,6 +402,7 @@ export default function ToptanSatisClient() {
               <p>3&apos;lü koli bazlı fiyatlandırma uygulanmaktadır.</p>
               <p>Tüm ürünlerimiz adres teslim olarak sevk edilmektedir.</p>
               <p>İstanbul bölgesi için özel fiyatlandırma sunulmaktadır.</p>
+              <p>Ürünlerimize +%1 KDV uygulanır.</p>
             </div>
           </div>
 
@@ -432,7 +434,7 @@ export default function ToptanSatisClient() {
                   <Link
                     key={product.id}
                     href={`/toptan/${product.slug}`}
-                    className="block bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition duration-200 flex flex-col"
+                    className="flex h-full min-h-[520px] flex-col bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition duration-200"
                   >
                     {/* Ürün görseli */}
                     <div className="relative w-full aspect-square overflow-hidden rounded-t-xl bg-gray-100">
@@ -448,19 +450,19 @@ export default function ToptanSatisClient() {
                     </div>
 
                     {/* İçerik alanı */}
-                    <div className="p-5 flex-1 flex flex-col">
-                      <h3 className="font-semibold text-lg text-gray-900">
-                        {product.name}
-                      </h3>
+                    <div className="flex flex-1 flex-col justify-between p-5">
+                      {/* Başlık + fiyat */}
+                      <div>
+                        <h3 className="font-semibold text-lg text-gray-900">
+                          {product.name}
+                        </h3>
 
-                      {/* Fiyat alanı */}
-                      <div className="mt-4">
-                        <p className="text-xs text-gray-500">
-                          +%1 KDV
-                        </p>
-                        <p className="mt-1 text-2xl font-bold text-gray-900">
-                          ₺{formatPrice(product.price)}
-                        </p>
+                        {/* Fiyat alanı */}
+                        <div className="mt-4">
+                          <p className="mt-1 text-2xl font-bold text-gray-900">
+                            ₺{formatPrice(product.price)}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Sepete ekle butonu */}
@@ -622,17 +624,6 @@ export default function ToptanSatisClient() {
 
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-5xl space-y-10">
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900">Kimler İçin Uygun?</h2>
-            <ul className="mt-4 space-y-2 text-gray-700 list-disc list-inside">
-              <li>Zincir marketler ve yerel marketler</li>
-              <li>Şarküteriler</li>
-              <li>Restoranlar, kafeler ve oteller</li>
-              <li>Catering firmaları ve toplu yemek hizmetleri</li>
-              <li>Kurumsal mutfaklar ve toplu tüketim noktaları</li>
-            </ul>
-          </section>
-
           <section>
             <h2 className="text-2xl font-bold text-gray-900">
               Toptan Satışı Yapılan Ürün Grupları

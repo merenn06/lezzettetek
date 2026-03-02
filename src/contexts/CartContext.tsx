@@ -92,9 +92,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotalPrice = () => {
+    const WHOLESALE_VAT_RATE = 0.01;
+
     return items.reduce((total, item) => {
       const itemPrice = item.product.price || 0;
-      return total + itemPrice * item.quantity;
+      const lineBase = itemPrice * item.quantity;
+
+      const wholesaleVat = item.product.is_wholesale
+        ? lineBase * WHOLESALE_VAT_RATE
+        : 0;
+
+      return total + lineBase + wholesaleVat;
     }, 0);
   };
 

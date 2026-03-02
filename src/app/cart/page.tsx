@@ -30,7 +30,19 @@ export default function CartPage() {
   };
 
   const subtotal = getTotalPrice();
-  const remaining = remainingForFreeShipping(subtotal);
+
+  const WHOLESALE_FEE_RATE = 0.01;
+
+  const wholesaleBase = items.reduce((sum, item) => {
+    const itemPrice = item.product.price || 0;
+    return item.product.is_wholesale ? sum + itemPrice * item.quantity : sum;
+  }, 0);
+
+  const hasWholesaleItems = wholesaleBase > 0;
+  const wholesaleFee = hasWholesaleItems ? wholesaleBase * WHOLESALE_FEE_RATE : 0;
+  const baseSubtotal = hasWholesaleItems ? subtotal - wholesaleFee : subtotal;
+
+  const remaining = remainingForFreeShipping(baseSubtotal);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -171,9 +183,18 @@ export default function CartPage() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-700">
                     <span>Ara Toplam:</span>
-                    <span className="font-semibold">{formatPrice(subtotal)} ₺</span>
+                    <span className="font-semibold">{formatPrice(baseSubtotal)} ₺</span>
                   </div>
-                  
+
+                  {hasWholesaleItems && (
+                    <div className="flex justify-between text-gray-500 text-sm">
+                      <span>Toptan Hizmet Bedeli (%1)</span>
+                      <span className="font-semibold text-gray-900">
+                        {formatPrice(wholesaleFee)} ₺
+                      </span>
+                    </div>
+                  )}
+
                   {/* Shipping info message */}
                   {remaining > 0 ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800">

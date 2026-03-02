@@ -44,6 +44,7 @@ function mapWholesaleRowToProduct(row: Record<string, unknown>): Product {
     origin,
     created_at: row.created_at as string | undefined,
     updated_at: row.updated_at as string | undefined,
+    is_wholesale: true,
   };
 }
 
