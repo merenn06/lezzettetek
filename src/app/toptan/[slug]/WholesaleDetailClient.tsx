@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useMemo } from "react";
 import type { Product } from "@/types/product";
-import { useCart } from "@/contexts/CartContext";
-import { useFlyToCart } from "@/contexts/FlyToCartContext";
 import { formatProductContentReact } from "@/lib/formatProductContentReact";
 
 type WholesaleDetailClientProps = {
@@ -14,31 +13,16 @@ type WholesaleDetailClientProps = {
 export default function WholesaleDetailClient({
   product,
 }: WholesaleDetailClientProps) {
-  const { addItem } = useCart();
-  const { triggerAnimation } = useFlyToCart();
+  const whatsappMessage = useMemo(
+    () =>
+      "Merhaba, Tek Lezzet toptan satış için fiyat teklifi almak istiyorum. Firma adım: __ / Şehir: __ / Tahmini aylık alım: __.",
+    []
+  );
 
-  const formatPrice = (price: number) =>
-    price.toLocaleString("tr-TR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const buttonRect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-    const startX = buttonRect.left + buttonRect.width / 2;
-    const startY = buttonRect.top + buttonRect.height / 2;
-
-    try {
-      triggerAnimation(startX, startY);
-    } catch (err) {
-      console.warn("Animation error:", err);
-    }
-
-    addItem(product);
-  };
+  const whatsappLink = useMemo(() => {
+    const encoded = encodeURIComponent(whatsappMessage);
+    return `https://wa.me/905532350634?text=${encoded}`;
+  }, [whatsappMessage]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -97,7 +81,7 @@ export default function WholesaleDetailClient({
               </div>
             </div>
 
-            {/* Sağ: Bilgi + CTA */}
+            {/* Sağ: Bilgi */}
             <div className="flex flex-col">
               <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 mb-4">
                 {product.name}
@@ -109,16 +93,6 @@ export default function WholesaleDetailClient({
                   <span className="font-medium">Menşei:</span> {product.origin}
                 </p>
               )}
-
-              {/* Fiyat */}
-              <div className="mb-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wider">
-                  +%1 KDV
-                </p>
-                <p className="mt-1 text-4xl font-bold text-green-700">
-                  ₺{formatPrice(product.price)}
-                </p>
-              </div>
 
               {/* Birim Fiyat */}
               {product.unit_price_text?.trim() && (
@@ -139,41 +113,18 @@ export default function WholesaleDetailClient({
                 </div>
               )}
 
-              {/* CTA: Sepete Ekle, Sepeti Görüntüle, Alışverişi Tamamla */}
-              <div className="mt-auto space-y-4">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="w-full py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md"
+              {/* Toptan fiyat teklifi CTA */}
+              <div className="mt-4">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-green-700 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-green-800 transition-colors"
                 >
-                  Sepete Ekle
-                </button>
-                <div className="flex flex-wrap gap-3 text-sm text-gray-700">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1">
-                    ✅ Katkısız
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1">
-                    ✅ Vakumlu ambalaj
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1">
-                    ✅ 1–3 günde kargo
-                  </span>
-                </div>
-                <div className="flex gap-3">
-                  <Link
-                    href="/cart"
-                    className="flex-1 py-3 bg-white text-green-700 border-2 border-green-700 rounded-xl font-semibold hover:bg-green-50 transition-colors text-center"
-                  >
-                    Sepeti Görüntüle
-                  </Link>
-                  <Link
-                    href="/checkout"
-                    className="flex-1 py-3 bg-white text-green-700 border-2 border-green-700 rounded-xl font-semibold hover:bg-green-50 transition-colors text-center"
-                  >
-                    Alışverişi Tamamla
-                  </Link>
-                </div>
+                  Toptan Fiyat Teklifi Al
+                </a>
               </div>
+
             </div>
           </div>
         </div>

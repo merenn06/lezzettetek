@@ -431,13 +431,15 @@ export default function ToptanSatisClient() {
             wholesaleProducts.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {wholesaleProducts.map((product) => (
-                  <Link
+                  <div
                     key={product.id}
-                    href={`/toptan/${product.slug}`}
-                    className="flex h-full min-h-[520px] flex-col bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition duration-200"
+                    className="flex h-full min-h-[400px] flex-col bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition duration-200"
                   >
                     {/* Ürün görseli */}
-                    <div className="relative w-full aspect-square overflow-hidden rounded-t-xl bg-gray-100">
+                    <Link
+                      href={`/toptan/${product.slug}`}
+                      className="relative w-full aspect-square overflow-hidden rounded-t-xl bg-gray-100 block"
+                    >
                       {product.image_url && (
                         <Image
                           src={product.image_url}
@@ -447,57 +449,27 @@ export default function ToptanSatisClient() {
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
                       )}
-                    </div>
+                    </Link>
 
-                    {/* İçerik alanı */}
+                    {/* İçerik alanı + buton */}
                     <div className="flex flex-1 flex-col justify-between p-5">
-                      {/* Başlık + fiyat */}
                       <div>
                         <h3 className="font-semibold text-lg text-gray-900">
                           {product.name}
                         </h3>
-
-                        {/* Fiyat alanı */}
-                        <div className="mt-4">
-                          <p className="mt-1 text-2xl font-bold text-gray-900">
-                            ₺{formatPrice(product.price)}
-                          </p>
-                        </div>
                       </div>
 
-                      {/* Sepete ekle butonu */}
                       <div className="mt-4">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            const buttonRect =
-                              e.currentTarget.getBoundingClientRect();
-                            const startX =
-                              buttonRect.left + buttonRect.width / 2;
-                            const startY =
-                              buttonRect.top + buttonRect.height / 2;
-
-                            try {
-                              triggerAnimation(startX, startY);
-                            } catch (animationError) {
-                              console.warn(
-                                "Animation error:",
-                                animationError
-                              );
-                            }
-
-                            addItem(product);
-                          }}
+                          onClick={() => setIsOpen(true)}
                           className="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-800 transition-colors"
                         >
-                          Sepete Ekle
+                          Toptan Fiyat Teklifi Al
                         </button>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
