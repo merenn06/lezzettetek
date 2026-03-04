@@ -8,7 +8,6 @@ const partners = [
   { name: 'Carrefour', src: '/carrefour-new-seeklogo.webp' },
   { name: 'Migros', src: '/migros.webp' },
   { name: 'Çağrı Hipermarket', src: '/cagri-hipermarket-seeklogo.webp' },
-  { name: 'Happy Center', src: '/Anpa%20Gross_idjQF839_j_0.webp' },
   { name: 'Kim Market', src: '/kim-market-seeklogo.webp' },
   { name: 'Onur', src: '/onur.webp' },
   { name: 'Özkuruşlar', src: '/ozkuruslar.webp' },
@@ -25,7 +24,6 @@ const partners = [
   { name: 'Volkan Arpacı', src: '/volkanarpaci.webp' },
   { name: 'Titanic', src: '/titanic-logo_2020-08-12T20_08_57.656924.webp' },
   { name: 'Ekol', src: '/ekol.webp' },
-  { name: 'Çiya', src: '/ciya.webp' },
   { name: 'Fil Catering', src: '/filcatering.webp' },
 ];
 
