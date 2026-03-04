@@ -119,6 +119,34 @@ export default function Hakkimizda() {
         </div>
       </section>
 
+      {/* Üretim Sürecimiz - Video Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="container mx-auto">
+          <div className="max-w-3xl mx-auto text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Üretim Sürecimiz
+            </h2>
+            <p className="mt-4 text-gray-700 leading-relaxed">
+              Tek Lezzet ürünlerinin hazırlanma sürecini yakından görmek için videomuzu izleyebilirsiniz.
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <div className="w-full max-w-[900px]">
+              <div className="relative aspect-video rounded-xl overflow-hidden shadow-lg">
+                <iframe
+                  src="https://www.youtube.com/embed/a5TWRyg9VjY?rel=0&modestbranding=1"
+                  title="Tek Lezzet Üretim Süreci Videosu"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Mission & Vision Section */}
       <section className="py-24 px-4 bg-gray-50">
         <div className="container mx-auto">
