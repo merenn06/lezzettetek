@@ -1387,23 +1387,35 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
       }
       codVO[codDocumentIdField] = documentId;
 
-      // Collection type mapping based on shipping_payment_type
-      // cash => 0 (nakit), card => 1 (kredi kartı)
-      // Default to "card" to match contract requirement if not explicitly set
-      // TEMP HOTFIX: YURTICI_FORCE_COD_CASH=1 forces collectionType="0" and removes dc fields
-      const forceCodCash = process.env.YURTICI_FORCE_COD_CASH === "1";
+      // Collection type mapping based strictly on shipping_payment_type:
+      // shipping_payment_type = "cash" -> ttCollectionType = "0" (Kapıda Nakit)
+      // shipping_payment_type = "card" -> ttCollectionType = "1" (Kapıda Kart)
+      //
+      // Eğer shipping_payment_type null/boş ise, sözleşme gereği varsayılanı "card" kabul ederiz.
       const paymentType = (order.shipping_payment_type as "cash" | "card" | null) || "card";
-      const collectionType = forceCodCash ? "0" : (paymentType === "card" ? "1" : "0");
+      const collectionType = paymentType === "card" ? "1" : "0";
+
+      // [COD-COLLECTION-MAP] - how collectionType is derived
+      console.log("[COD-COLLECTION-MAP]", {
+        orderId,
+        payment_method: order.payment_method,
+        order_shipping_payment_type: order.shipping_payment_type,
+        computed_paymentType: paymentType,
+        computed_collectionType: collectionType,
+      });
       codVO[codCollectionTypeField] = collectionType;
       if (codCollectionTypeSpecifiedField) {
         codVO[codCollectionTypeSpecifiedField] = true;
       }
       codVO[codDocumentSaveTypeField] = "0";
 
-      // If collectionType is credit card ("1") AND NOT forceCodCash, send dcSelectedCredit / dcCreditRule
-      // TEMP HOTFIX: If forceCodCash is on, completely REMOVE dc fields from payload
-      if (collectionType === "1" && !forceCodCash) {
-        codVO[codSelectedCreditField] = String(process.env.YURTICI_DC_SELECTED_CREDIT || "5");
+      // Kapıda Kart (collectionType === "1") için kredi kartı tahsilat alanları zorunlu
+      if (collectionType === "1") {
+        // Kapıda Kart: kredi kartı tahsilat alanları zorunlu
+        // dcSelectedCredit ve dcCreditRule varsayılanları:
+        // dcSelectedCredit = YURTICI_DC_SELECTED_CREDIT || "5", dcCreditRule = "1"
+        const selectedCredit = String(process.env.YURTICI_DC_SELECTED_CREDIT || "5");
+        codVO[codSelectedCreditField] = selectedCredit;
         codVO[codCreditRuleField] = "1";
         if (codSelectedCreditSpecifiedField) {
           codVO[codSelectedCreditSpecifiedField] = true;
@@ -1412,14 +1424,31 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
           codVO[codCreditRuleSpecifiedField] = true;
         }
       }
-      // Note: If forceCodCash is on, dcSelectedCredit and dcCreditRule are NOT added to codVO at all
+      // [COD-VO-AFTER-MAP] - codVO after mapping COD fields
+      console.log("[COD-VO-AFTER-MAP]", {
+        orderId,
+        payment_method: order.payment_method,
+        shipping_payment_type: order.shipping_payment_type,
+        ttCollectionType: codVO[codCollectionTypeField],
+        dcSelectedCredit: codVO[codSelectedCreditField],
+        dcCreditRule: codVO[codCreditRuleField],
+      });
 
       shippingOrderVO = codVO;
+
+      // [COD-SHIPPING-ORDER-VO] - final ShippingOrderVO that will be sent for COD
+      console.log("[COD-SHIPPING-ORDER-VO]", {
+        orderId,
+        payment_method: order.payment_method,
+        shipping_payment_type: order.shipping_payment_type,
+        ttCollectionType: shippingOrderVO[codCollectionTypeField],
+        dcSelectedCredit: shippingOrderVO[codSelectedCreditField],
+        dcCreditRule: shippingOrderVO[codCreditRuleField],
+      });
 
       // Debug log - COD fields net görünsün
       console.log(`[yurtici-shipment] COD fields for order ${orderId}:`, {
         paymentType,
-        forceCodCash,
         collectionType,
         codInvoiceAmountField,
         codInvoiceAmountSpecifiedField,
@@ -1433,9 +1462,7 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
         codCreditRuleSpecifiedField,
         ttInvoiceAmountValue: ttInvoiceAmount,
         vo: codVO,
-        note: forceCodCash
-          ? "TEMP HOTFIX: YURTICI_FORCE_COD_CASH=1 active. collectionType forced to '0', dc fields removed."
-          : "COD field names resolved via WSDL describe(). Collection type derived from shipping_payment_type.",
+        note: "COD field names resolved via WSDL describe(). Collection type derived from shipping_payment_type (cash=0, card=1).",
       });
     } else {
       // Online payment: COD fields are NOT sent
@@ -1513,7 +1540,15 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
       wsUserName: maskCredential(apiUser),
       wsPassword: maskCredential(apiPass),
     };
-    console.log(`[shipping-auto] SOAP payload (credentials masked):`, JSON.stringify(maskedPayload, null, 2));
+    if (isCOD) {
+      // [COD-SOAP-PAYLOAD-PREVIEW] - masked SOAP payload preview for COD orders
+      console.log("[COD-SOAP-PAYLOAD-PREVIEW]", JSON.stringify(maskedPayload, null, 2));
+    } else {
+      console.log(
+        `[shipping-auto] SOAP payload (credentials masked):`,
+        JSON.stringify(maskedPayload, null, 2)
+      );
+    }
     
     // Final payload verification - check if COD fields are present (using resolved field names)
     if (isCOD) {
@@ -1778,6 +1813,21 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
         `[shipping-auto] failed - Order ${orderId} - outFlag: ${outFlag}, errCode: ${errCode}, errMessage: ${baseMsg}`
       );
 
+      // [COD-CREATE-SHIPMENT-FAILED] - COD-specific failure trace
+      if (isCOD) {
+        console.error("[COD-CREATE-SHIPMENT-FAILED]", {
+          orderId,
+          payment_method: order.payment_method,
+          shipping_payment_type: order.shipping_payment_type,
+          ttCollectionType: shippingOrderVO ? shippingOrderVO[codCollectionTypeField] : undefined,
+          dcSelectedCredit: shippingOrderVO ? shippingOrderVO[codSelectedCreditField] : undefined,
+          dcCreditRule: shippingOrderVO ? shippingOrderVO[codCreditRuleField] : undefined,
+          outFlag,
+          errCode,
+          errMessage: baseMsg,
+        });
+      }
+
       // Build failure update payload
       const failureUpdate: any = {
         shipping_status: "create_failed",
@@ -1913,6 +1963,21 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
       // ORDER_SEQ not available yet - set status to pending barcode
       updateData.shipping_tracking_number = null;
       updateData.shipping_status = "created_pending_barcode";
+    }
+
+    // [COD-DB-UPDATE-BEFORE] - trace what we're about to persist for COD fields
+    if (isCOD) {
+      console.log("[COD-DB-UPDATE-BEFORE]", {
+        orderId,
+        payment_method: order.payment_method,
+        shipping_payment_type: order.shipping_payment_type,
+        yurtici_tt_collection_type: updateData.yurtici_tt_collection_type,
+        yurtici_dc_selected_credit: updateData.yurtici_dc_selected_credit,
+        yurtici_dc_credit_rule: updateData.yurtici_dc_credit_rule,
+        yurtici_tt_document_id: updateData.yurtici_tt_document_id,
+        yurtici_tt_invoice_amount: updateData.yurtici_tt_invoice_amount,
+        yurtici_tt_document_save_type: updateData.yurtici_tt_document_save_type,
+      });
     }
 
     const { error: updateError } = await supabase

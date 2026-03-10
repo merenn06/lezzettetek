@@ -61,7 +61,7 @@ export default function CheckoutPage() {
     shippingMethod: 'yurtici-kargo',
     // Payment
     paymentMethod: 'kapida-odeme',
-    codPaymentType: 'card' as 'cash' | 'card', // COD tahsilat tipi - kontrat gereği her zaman "card"
+    codPaymentType: 'card' as 'cash' | 'card',
     // Confirmation
     termsAccepted: false,
     privacyAccepted: false,
@@ -302,8 +302,8 @@ export default function CheckoutPage() {
       district: formData.district.trim(),
       note: formData.deliveryNote.trim() || null,
       payment_method: paymentMethod,
-      // COD tahsilat tipi: kontrat gereği her zaman "card" (kredi kartı)
-      shipping_payment_type: paymentMethod === 'kapida' ? 'card' : null,
+      // COD tahsilat tipi: Kapıda Nakit/Kart seçimine göre belirlenir
+      shipping_payment_type: paymentMethod === 'kapida' ? formData.codPaymentType : null,
       invoice_type: invoiceType,
       invoice_company_name: formData.corporateInvoice ? formData.companyName.trim() : null,
       invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
@@ -840,13 +840,42 @@ export default function CheckoutPage() {
                       className="mt-1 mr-3 w-4 h-4 text-green-700 focus:ring-green-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">Kapıda Ödeme (Nakit/Kredi Kartı)</span>
+                      <span className="font-medium text-gray-900">Kapıda Ödeme</span>
                       <p className="text-sm text-gray-500 mt-1">
-                        Ödemenizi teslimat sırasında kargo görevlisine kredi kartı veya nakit ile yapabilirsiniz.
+                        Ödemenizi teslimat sırasında kargo görevlisine nakit veya kredi kartı ile yapabilirsiniz.
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
                         Kapıda ödeme hizmet bedeli: {formatPrice(COD_FEE)} ₺
                       </p>
+                      {formData.paymentMethod === 'kapida-odeme' && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-sm font-medium text-gray-900">Kapıda Tahsilat Şekli</p>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 text-sm text-gray-700">
+                            <label className="inline-flex items-center cursor-pointer mr-4">
+                              <input
+                                type="radio"
+                                name="codPaymentType"
+                                value="cash"
+                                checked={formData.codPaymentType === 'cash'}
+                                onChange={(e) => handleRadioChange('codPaymentType', e.target.value)}
+                                className="mr-2 w-4 h-4 text-green-700 focus:ring-green-500"
+                              />
+                              <span>Kapıda Nakit</span>
+                            </label>
+                            <label className="inline-flex items-center cursor-pointer mt-2 sm:mt-0">
+                              <input
+                                type="radio"
+                                name="codPaymentType"
+                                value="card"
+                                checked={formData.codPaymentType === 'card'}
+                                onChange={(e) => handleRadioChange('codPaymentType', e.target.value)}
+                                className="mr-2 w-4 h-4 text-green-700 focus:ring-green-500"
+                              />
+                              <span>Kapıda Kart (POS)</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </label>
 

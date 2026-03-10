@@ -122,13 +122,23 @@ function getStatusBadge(status: string): { label: string; className: string } {
   return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
 }
 
-function getPaymentMethodLabel(method: string): string {
-  const methodMap: Record<string, string> = {
-    havale: 'Havale',
-    kapida: 'Kapıda Ödeme',
-    iyzico: 'Online Ödeme',
-  };
-  return methodMap[method] || method;
+function getPaymentMethodLabel(method: string, shippingPaymentType?: "cash" | "card" | null): string {
+  if (method === 'iyzico') {
+    return 'Online Kart';
+  }
+
+  if (method === 'kapida' || method === 'cod') {
+    if (shippingPaymentType === 'cash') {
+      return 'Kapıda Nakit';
+    }
+    return 'Kapıda Kart';
+  }
+
+  if (method === 'havale') {
+    return 'Havale';
+  }
+
+  return method;
 }
 
 function getPaymentStatusBadge(paymentMethod: string, paymentStatus: string | null | undefined, orderStatus: string): { label: string; className: string } {
@@ -414,7 +424,12 @@ export default async function AdminSiparisDetayPage({ params }: Props) {
             <div>
               <h3 className="text-sm font-semibold text-gray-500 mb-2">Ödeme Yöntemi</h3>
               <div className="space-y-2">
-                <p className="text-gray-900">{getPaymentMethodLabel(order!.payment_method)}</p>
+                <p className="text-gray-900">
+                  {getPaymentMethodLabel(
+                    order!.payment_method,
+                    order!.shipping_payment_type as "cash" | "card" | null
+                  )}
+                </p>
                 {(() => {
                   const paymentBadge = getPaymentStatusBadge(
                     order!.payment_method,

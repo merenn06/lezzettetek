@@ -15,6 +15,7 @@ async function createTestOrderResponse() {
     const { data: products, error: productsError } = await supabase
       .from('products')
       .select('id, name, price')
+      .eq('is_active', true)
       .limit(1);
 
     if (productsError) {

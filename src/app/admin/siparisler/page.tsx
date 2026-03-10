@@ -13,7 +13,7 @@ async function getOrders(): Promise<Partial<Order>[]> {
 
   const { data, error } = await supabase
     .from('orders')
-    .select('id, created_at, customer_name, phone, city, district, payment_method, status, total_price')
+    .select('id, created_at, customer_name, phone, city, district, payment_method, shipping_payment_type, status, total_price')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -58,12 +58,23 @@ function getStatusBadge(status: string): { label: string; className: string } {
   return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
 }
 
-function getPaymentMethodLabel(method: string): string {
-  const methodMap: Record<string, string> = {
-    havale: 'Havale',
-    kapida: 'Kapıda Ödeme',
-  };
-  return methodMap[method] || method;
+function getPaymentMethodLabel(method: string, shippingPaymentType?: "cash" | "card" | null): string {
+  if (method === 'iyzico') {
+    return 'Online Kart';
+  }
+
+  if (method === 'kapida' || method === 'cod') {
+    if (shippingPaymentType === 'cash') {
+      return 'Kapıda Nakit';
+    }
+    return 'Kapıda Kart';
+  }
+
+  if (method === 'havale') {
+    return 'Havale';
+  }
+
+  return method;
 }
 
 export default async function AdminSiparislerPage() {
@@ -125,7 +136,10 @@ export default async function AdminSiparislerPage() {
                             {order.city} / {order.district}
                           </td>
                           <td className="py-3 px-4 text-gray-700">
-                            {getPaymentMethodLabel(order.payment_method)}
+                            {getPaymentMethodLabel(
+                              order.payment_method as string,
+                              order.shipping_payment_type as "cash" | "card" | null
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <span

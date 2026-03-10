@@ -42,11 +42,12 @@ export default async function ProductDetailPage({
     );
   }
 
-  // Fetch product
+  // Fetch product (only active products should be visible on website)
   const { data: product, error } = await supabase
     .from('products')
     .select('*')
     .eq('slug', slug)
+    .eq('is_active', true)
     .maybeSingle();
 
   if (error || !product) {

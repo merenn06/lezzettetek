@@ -14,6 +14,8 @@ export type Product = {
   // Optional fields that may exist in Supabase but are not mandatory for UI
   created_at?: string;
   updated_at?: string;
+  // Soft delete / archive flag (Supabase products.is_active)
+  is_active?: boolean;
   /**
    * Toptan satış ürünlerini diğerlerinden ayırt etmek için opsiyonel bayrak.
    * Sadece wholesale akışında true olarak set edilir.

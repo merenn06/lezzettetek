@@ -180,23 +180,33 @@ export async function DELETE(
     const resolvedParams = await context.params;
     const { id } = resolvedParams;
 
-    const { error } = await supabase
+    // Soft delete / archive: ürünü silmek yerine pasif hale getiriyoruz
+    const { data, error } = await supabase
       .from("products")
-      .delete()
-      .eq("id", id);
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
 
     if (error) {
-      console.error("Supabase delete error:", error);
+      console.error("Supabase archive (soft delete) error:", error);
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(
-      { success: true },
-      { status: 200 }
-    );
+    if (!data) {
+      return NextResponse.json(
+        { success: false, error: "Ürün bulunamadı" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: any) {
     console.error("API /admin/products/[id] DELETE hata:", err);
     return NextResponse.json(

@@ -27,6 +27,7 @@ export async function GET(
       .from("products")
       .select("*")
       .eq("slug", slug)
+      .eq("is_active", true)
       .maybeSingle();
 
     if (error) {

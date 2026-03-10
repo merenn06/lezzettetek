@@ -60,6 +60,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("products")
     .select("id,name,slug,description,content,price,image_url,stock")
+    .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
   if (error) {

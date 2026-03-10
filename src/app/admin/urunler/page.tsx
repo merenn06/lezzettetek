@@ -46,7 +46,10 @@ export default function AdminUrunlerPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/products', { cache: 'no-store' });
+      // Admin tarafında arşivlenmiş ürünleri de görebilmek için include_inactive=1 ile çağırıyoruz
+      const response = await fetch('/api/products?include_inactive=1', {
+        cache: 'no-store',
+      });
       const data = await response.json();
       if (data.success) {
         setProducts(data.products || []);

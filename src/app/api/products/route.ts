@@ -12,11 +12,10 @@ if (!supabaseUrl || !supabaseKey) {
   console.error("Supabase env değişkenleri eksik!");
 }
 
-const supabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+const supabase =
+  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     if (!supabase) {
       return NextResponse.json(
@@ -29,11 +28,20 @@ export async function GET() {
       );
     }
 
+    const url = new URL(request.url);
+    const includeInactive = url.searchParams.get("include_inactive") === "1";
+
     // products tablosunu çekiyoruz
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .order("sort_order", { ascending: true });
+    let query = supabase.from("products").select("*");
+
+    // Varsayılan: sadece aktif ürünler
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
+
+    const { data, error } = await query.order("sort_order", {
+      ascending: true,
+    });
 
     if (error) {
       console.error("Supabase error:", error);

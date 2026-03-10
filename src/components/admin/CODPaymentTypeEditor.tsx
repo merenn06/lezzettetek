@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface CODPaymentTypeEditorProps {
@@ -13,24 +13,16 @@ export default function CODPaymentTypeEditor({
   initialPaymentType,
 }: CODPaymentTypeEditorProps) {
   const router = useRouter();
-  // Always "card" - contract requires credit card collection only
-  const [selectedType] = useState<"card">("card");
+  const [selectedType, setSelectedType] = useState<"cash" | "card">(initialPaymentType || "card");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null
   );
 
-  // Auto-save to "card" if not already set
-  useEffect(() => {
-    if (initialPaymentType !== "card") {
-      handleSave();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSave = async () => {
-    if (initialPaymentType === "card") {
-      return; // Already set
+  const handleSave = async (newType: "cash" | "card") => {
+    if (newType === initialPaymentType) {
+      setSelectedType(newType);
+      return;
     }
 
     setLoading(true);
@@ -42,7 +34,7 @@ export default function CODPaymentTypeEditor({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ shipping_payment_type: "card" }),
+        body: JSON.stringify({ shipping_payment_type: newType }),
       });
 
       const result = await response.json();
@@ -51,7 +43,11 @@ export default function CODPaymentTypeEditor({
         throw new Error(result.error || 'Tahsilat tipi güncellenirken bir hata oluştu');
       }
 
-      setMessage({ type: 'success', text: 'Tahsilat tipi kredi kartı olarak ayarlandı (kontrat gereği)' });
+      setSelectedType(newType);
+      setMessage({
+        type: 'success',
+        text: newType === "card" ? 'Tahsilat tipi Kapıda Kart olarak ayarlandı.' : 'Tahsilat tipi Kapıda Nakit olarak ayarlandı.',
+      });
       
       // Refresh server data
       router.refresh();
@@ -74,21 +70,14 @@ export default function CODPaymentTypeEditor({
     <div className="space-y-2">
       <div className="flex gap-3 items-center">
         <select
-          value="card"
-          disabled={true}
-          className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+          value={selectedType}
+          onChange={(e) => handleSave(e.target.value as "cash" | "card")}
+          disabled={loading}
+          className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800"
         >
-          <option value="card">Kredi Kartı (Kontrat gereği)</option>
+          <option value="cash">Kapıda Nakit</option>
+          <option value="card">Kapıda Kart (POS)</option>
         </select>
-        {initialPaymentType !== "card" && (
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="px-4 py-2 bg-green-700 text-white rounded-lg font-semibold hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Kaydediliyor...' : 'Kredi Kartına Güncelle'}
-          </button>
-        )}
       </div>
       {message && (
         <div
