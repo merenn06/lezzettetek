@@ -144,8 +144,17 @@ export async function POST(req: Request) {
       shipping_payment_type = rawShippingPaymentType;
     } else if (rawShippingPaymentType !== null && rawShippingPaymentType !== undefined) {
       // Invalid value, log warning but don't fail
-      console.warn(`[orders-api] Invalid shipping_payment_type: ${rawShippingPaymentType}, defaulting to null`);
+      console.warn(
+        `[orders-api] Invalid shipping_payment_type: ${rawShippingPaymentType}, defaulting to null`
+      );
     }
+
+    // Debug: log normalized shipping_payment_type coming into orders API
+    console.log("[orders-api-body]", {
+      payment_method,
+      rawShippingPaymentType,
+      normalized_shipping_payment_type: shipping_payment_type,
+    });
 
     const mappedItems: OrderItemInput[] = items.map((item) => ({
       product_id: item.product_id,

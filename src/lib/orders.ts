@@ -75,12 +75,23 @@ export async function createOrderWithItems(
   const paymentStatus = isCOD ? 'awaiting_payment' : null;
   
   // Set shipping_payment_type for COD orders
-  // Kontrat gereği her zaman "card" (kredi kartı) - nakit seçeneği kaldırıldı
+  // Frontend'den gelen değeri kullan; yoksa COD için "card" varsayılanı
   let shippingPaymentType: "cash" | "card" | null = null;
   if (isCOD) {
-    // Always "card" - contract requires credit card collection only
-    shippingPaymentType = "card";
+    if (orderData.shipping_payment_type === "cash" || orderData.shipping_payment_type === "card") {
+      shippingPaymentType = orderData.shipping_payment_type;
+    } else {
+      // Fallback: COD sipariş ama frontend değeri yok/bozuksa, kart varsayılanı kullan
+      shippingPaymentType = "card";
+    }
   }
+
+  // Debug: log final values before inserting order
+  console.log("[orders-insert]", {
+    payment_method: orderData.payment_method,
+    orderData_shipping_payment_type: orderData.shipping_payment_type ?? null,
+    computed_shippingPaymentType: shippingPaymentType,
+  });
   
   const { data: order, error: orderError } = await supabase
     .from('orders')

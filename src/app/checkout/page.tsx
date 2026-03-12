@@ -207,6 +207,16 @@ export default function CheckoutPage() {
     setApiError(null);
     setSuccessMessage(null);
 
+    // Debug: log selected COD payment type at checkout submit time
+    try {
+      console.log("[checkout-submit]", {
+        paymentMethod: formData.paymentMethod,
+        codPaymentType: formData.codPaymentType,
+      });
+    } catch {
+      // ignore logging errors in browser (some environments may block console)
+    }
+
     // Check if iyzico payment is selected
     if (formData.paymentMethod === 'siteden-odeme') {
       // iyzico payment flow
@@ -318,6 +328,15 @@ export default function CheckoutPage() {
     };
 
     try {
+      // Debug: log body that will be sent to /api/orders
+      try {
+        console.log("[checkout-submit-order-body]", {
+          payment_method: orderData.payment_method,
+          shipping_payment_type: orderData.shipping_payment_type,
+        });
+      } catch {
+        // ignore
+      }
       // POST to API
       const response = await fetch('/api/orders', {
         method: 'POST',
