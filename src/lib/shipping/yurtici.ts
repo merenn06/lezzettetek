@@ -1413,8 +1413,8 @@ export async function createYurticiShipmentForOrder(orderId: string): Promise<Cr
       if (collectionType === "1") {
         // Kapıda Kart: kredi kartı tahsilat alanları zorunlu
         // dcSelectedCredit ve dcCreditRule varsayılanları:
-        // dcSelectedCredit = YURTICI_DC_SELECTED_CREDIT || "5", dcCreditRule = "1"
-        const selectedCredit = String(process.env.YURTICI_DC_SELECTED_CREDIT || "5");
+        // dcSelectedCredit = YURTICI_DC_SELECTED_CREDIT || "1", dcCreditRule = "1"
+        const selectedCredit = String(process.env.YURTICI_DC_SELECTED_CREDIT || "1");
         codVO[codSelectedCreditField] = selectedCredit;
         codVO[codCreditRuleField] = "1";
         if (codSelectedCreditSpecifiedField) {

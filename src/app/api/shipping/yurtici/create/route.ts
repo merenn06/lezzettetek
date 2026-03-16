@@ -402,7 +402,7 @@ export async function POST(req: Request) {
         ttDocumentId: documentId,
         ttCollectionType: "1",
         ttDocumentSaveType: "0",
-        dcSelectedCredit: String(process.env.YURTICI_DC_SELECTED_CREDIT || "5"),
+        dcSelectedCredit: String(process.env.YURTICI_DC_SELECTED_CREDIT || "1"),
         dcCreditRule: "1",
       };
 
