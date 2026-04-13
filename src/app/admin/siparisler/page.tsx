@@ -6,23 +6,55 @@ import { Order } from '@/types/orders';
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
 
-async function getOrders(): Promise<Partial<Order>[]> {
+const PAGE_SIZE = 50;
+
+const ORDER_LIST_COLUMNS =
+  'id, created_at, customer_name, phone, city, district, payment_method, shipping_payment_type, status, total_price';
+
+type OrdersPageResult = {
+  orders: Partial<Order>[];
+  page: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+async function getOrdersPage(requestedPage: number): Promise<OrdersPageResult> {
   if (!supabase) {
     throw new Error('Supabase client başlatılamadı.');
   }
 
+  const { count, error: countError } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true });
+
+  if (countError) {
+    console.error('Orders count error:', countError);
+    throw new Error(`Sipariş sayısı alınamadı: ${countError.message}`);
+  }
+
+  const totalCount = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const page = Math.min(Math.max(1, requestedPage), totalPages);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   const { data, error } = await supabase
     .from('orders')
-    .select('id, created_at, customer_name, phone, city, district, payment_method, shipping_payment_type, status, total_price')
+    .select(ORDER_LIST_COLUMNS)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .range(from, to);
 
   if (error) {
     console.error('Orders fetch error:', error);
     throw new Error(`Siparişler yüklenirken hata oluştu: ${error.message}`);
   }
 
-  return (data || []) as Partial<Order>[];
+  return {
+    orders: (data || []) as Partial<Order>[],
+    page,
+    totalCount,
+    totalPages,
+  };
 }
 
 function formatDate(dateString: string): string {
@@ -77,15 +109,36 @@ function getPaymentMethodLabel(method: string, shippingPaymentType?: "cash" | "c
   return method;
 }
 
-export default async function AdminSiparislerPage() {
+type AdminSiparislerPageProps = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+export default async function AdminSiparislerPage({ searchParams }: AdminSiparislerPageProps) {
+  const params = await searchParams;
+  const rawPage = parseInt(String(params.page ?? '1'), 10);
+  const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+
   let orders: Order[] = [];
   let error: string | null = null;
+  let page = 1;
+  let totalPages = 1;
+  let totalCount = 0;
 
   try {
-    orders = (await getOrders()) as unknown as Order[];
+    const result = await getOrdersPage(requestedPage);
+    orders = result.orders as unknown as Order[];
+    page = result.page;
+    totalPages = result.totalPages;
+    totalCount = result.totalCount;
   } catch (err) {
     error = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.';
   }
+
+  const basePath = '/admin/siparisler';
+  const prevHref = page > 1 ? `${basePath}?page=${page - 1}` : null;
+  const nextHref = page < totalPages ? `${basePath}?page=${page + 1}` : null;
+  const fromRow = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const toRow = Math.min(page * PAGE_SIZE, totalCount);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -106,6 +159,12 @@ export default async function AdminSiparislerPage() {
                 Henüz sipariş bulunmamaktadır.
               </div>
             ) : (
+              <>
+              <p className="text-sm text-gray-600 mb-4">
+                Toplam {totalCount.toLocaleString('tr-TR')} sipariş — {fromRow}–{toRow} arası gösteriliyor
+                {' · '}
+                Sayfa {page} / {totalPages}
+              </p>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -165,6 +224,38 @@ export default async function AdminSiparislerPage() {
                   </tbody>
                 </table>
               </div>
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-4">
+                <div className="text-sm text-gray-600">
+                  Sayfa başına {PAGE_SIZE} sipariş
+                </div>
+                <div className="flex gap-2">
+                  {prevHref ? (
+                    <Link
+                      href={prevHref}
+                      className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
+                    >
+                      ← Önceki
+                    </Link>
+                  ) : (
+                    <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">
+                      ← Önceki
+                    </span>
+                  )}
+                  {nextHref ? (
+                    <Link
+                      href={nextHref}
+                      className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
+                    >
+                      Sonraki →
+                    </Link>
+                  ) : (
+                    <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">
+                      Sonraki →
+                    </span>
+                  )}
+                </div>
+              </div>
+              </>
             )}
           </div>
         )}
