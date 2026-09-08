@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product } from '@/types/product';
+import { META_EVENT_NAMES } from '@/lib/meta/constants';
+import { buildMetaEventId } from '@/lib/meta/eventId';
+import { trackMetaPixelEvent } from '@/lib/meta/pixel';
 
 interface CartItem {
   product: Product;
@@ -31,6 +34,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isMiniCartOpen, setIsMiniCartOpen] = useState(false);
 
   const addItem = (product: Product) => {
+    const quantityAdded = 1;
+
     setItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.product.id === product.id);
       if (existingItem) {
@@ -49,6 +54,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
       ];
     });
+
+    if (product?.id && product?.name && typeof product.price === 'number') {
+      const eventId = buildMetaEventId(
+        META_EVENT_NAMES.ADD_TO_CART,
+        `${product.id}_${Date.now()}`
+      );
+      trackMetaPixelEvent(
+        META_EVENT_NAMES.ADD_TO_CART,
+        {
+          content_ids: [product.id],
+          content_name: product.name,
+          content_type: 'product',
+          value: product.price * quantityAdded,
+          currency: 'TRY',
+        },
+        eventId
+      );
+    }
+
     // Auto-open mini-cart when item is added
     setIsMiniCartOpen(true);
   };

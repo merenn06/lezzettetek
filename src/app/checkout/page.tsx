@@ -11,6 +11,9 @@ import {
   normalizeCoupon,
   roundCurrency,
 } from '@/lib/coupons';
+import { META_EVENT_NAMES } from '@/lib/meta/constants';
+import { buildMetaEventId } from '@/lib/meta/eventId';
+import { trackMetaPixelEvent } from '@/lib/meta/pixel';
 
 // Helper function to execute scripts from HTML content
 function executeScripts(container: HTMLElement) {
@@ -38,6 +41,7 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const initiateCheckoutTrackedRef = useRef(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -83,6 +87,44 @@ export default function CheckoutPage() {
   const couponResult = calculateCouponDiscount(baseTotal, appliedCoupon);
   const discountAmount = couponResult.discountAmount;
   const total = roundCurrency(couponResult.totalAfterDiscount + codFee);
+
+  useEffect(() => {
+    if (initiateCheckoutTrackedRef.current) return;
+    if (items.length === 0) return;
+
+    const contentIds = items
+      .map((item) => item.product.id)
+      .filter((id): id is string => Boolean(id));
+    if (contentIds.length === 0) return;
+
+    const numItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    if (numItems <= 0) return;
+
+    // Product/cart subtotal only — excludes shipping, COD fee, and coupon discount.
+    const value = subtotal;
+    if (value <= 0) return;
+
+    const eventId = buildMetaEventId(
+      META_EVENT_NAMES.INITIATE_CHECKOUT,
+      `${contentIds.join('_')}_${Date.now()}`
+    );
+
+    const tracked = trackMetaPixelEvent(
+      META_EVENT_NAMES.INITIATE_CHECKOUT,
+      {
+        content_ids: contentIds,
+        content_type: 'product',
+        num_items: numItems,
+        value,
+        currency: 'TRY',
+      },
+      eventId
+    );
+
+    if (tracked) {
+      initiateCheckoutTrackedRef.current = true;
+    }
+  }, [items, subtotal]);
 
   // Render iyzico form content when available
   useEffect(() => {

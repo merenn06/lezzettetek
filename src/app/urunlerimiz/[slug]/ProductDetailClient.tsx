@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
@@ -8,6 +8,9 @@ import { useFlyToCart } from '@/contexts/FlyToCartContext';
 import { formatProductContentReact } from '@/lib/formatProductContentReact';
 import ProductReviews from '@/components/ProductReviews';
 import ProductImageSlider from '@/components/ProductImageSlider';
+import { META_EVENT_NAMES } from '@/lib/meta/constants';
+import { buildMetaEventId } from '@/lib/meta/eventId';
+import { trackMetaPixelEvent } from '@/lib/meta/pixel';
 
 const CATEGORY_STYLES: Record<string, { badge: string; gradient: string }> = {
   kavanoz: { badge: 'bg-green-100 text-green-700', gradient: 'from-green-200 to-green-300' },
@@ -23,6 +26,38 @@ type ProductDetailClientProps = {
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { addItem } = useCart();
   const { triggerAnimation } = useFlyToCart();
+  const trackedViewContentProductId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const productId = product?.id;
+    const productName = product?.name;
+    const productPrice = product?.price;
+
+    if (!productId || !productName || typeof productPrice !== 'number') {
+      return;
+    }
+
+    if (trackedViewContentProductId.current === productId) {
+      return;
+    }
+
+    const eventId = buildMetaEventId(META_EVENT_NAMES.VIEW_CONTENT, productId);
+    const tracked = trackMetaPixelEvent(
+      META_EVENT_NAMES.VIEW_CONTENT,
+      {
+        content_ids: [productId],
+        content_name: productName,
+        content_type: 'product',
+        value: productPrice,
+        currency: 'TRY',
+      },
+      eventId
+    );
+
+    if (tracked) {
+      trackedViewContentProductId.current = productId;
+    }
+  }, [product.id, product.name, product.price]);
 
   const getCategoryBadgeStyle = (category?: string | null) => {
     if (!category) return CATEGORY_STYLES.default.badge;

@@ -8,6 +8,8 @@ import { CartProvider } from "@/contexts/CartContext";
 import { FlyToCartProvider } from "@/contexts/FlyToCartContext";
 import MiniCart from "@/components/MiniCart";
 import FlyToCartAnimation from "@/components/FlyToCartAnimation";
+import MetaPixel from "@/components/analytics/MetaPixel";
+import MetaPageViewTracker from "@/components/analytics/MetaPageViewTracker";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -63,8 +65,10 @@ export default function RootLayout({
             gtag('config', 'G-P70KBVS3CT');
           `}
         </Script>
+        <MetaPixel />
         <CartProvider>
           <FlyToCartProvider>
+            <MetaPageViewTracker />
             <Header />
             <main className="flex-1">
               {children}

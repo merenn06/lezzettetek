@@ -5,6 +5,8 @@ import {
   type OrderItemInput,
 } from "@/lib/orders";
 import { sendOrderConfirmationEmail } from "@/lib/mailer";
+import { sendMetaPurchaseCapi } from "@/lib/meta/purchase";
+import { supabase } from "@/lib/supabaseClient";
 import { calculateCodFee, calculateShipping } from "@/lib/shipping";
 import {
   calculateCouponDiscount,
@@ -190,6 +192,42 @@ export async function POST(req: Request) {
     };
 
     const { orderId } = await createOrderWithItems(orderData, mappedItems);
+
+    const isCashOnDelivery =
+      payment_method === "kapida" || payment_method === "cod";
+
+    if (isCashOnDelivery && supabase) {
+      const { data: createdOrder } = await supabase
+        .from("orders")
+        .select("id, total_price, customer_name, phone, email, city, district")
+        .eq("id", orderId)
+        .single();
+
+      await sendMetaPurchaseCapi(
+        {
+          id: orderId,
+          total_price: createdOrder?.total_price ?? totalPrice,
+          customer_name,
+          phone,
+          email,
+          city,
+          district,
+        },
+        mappedItems.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+        })),
+        {
+          eventSourceUrl: req.headers.get("referer") || undefined,
+          clientIpAddress:
+            req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+            req.headers.get("x-real-ip") ||
+            undefined,
+          clientUserAgent: req.headers.get("user-agent") || undefined,
+        }
+      );
+    }
 
     // Send confirmation email if email is provided
     if (email) {
