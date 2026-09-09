@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { buildPageViewEventId } from "@/lib/meta/eventId";
 import { shouldRunMetaPixel, trackMetaPageView } from "@/lib/meta/pixel";
 
+const META_PIXEL_READY_EVENT = "meta-pixel-ready";
+
 /**
  * Fires Meta PageView on App Router client-side navigations.
  * Initial PageView is also tracked here after fbq is ready.
@@ -19,38 +21,42 @@ export default function MetaPageViewTracker() {
       return;
     }
 
-    if (lastTrackedPath.current === pathname) {
-      return;
-    }
+    const tryTrackPageView = (): boolean => {
+      if (lastTrackedPath.current === pathname) {
+        return true;
+      }
 
-    const fire = () => {
+      if (typeof window === "undefined" || !window.fbq) {
+        return false;
+      }
+
       const eventId = buildPageViewEventId(pathname);
       const tracked = trackMetaPageView(eventId, pathname);
       if (tracked) {
         lastTrackedPath.current = pathname;
       }
+      return tracked;
     };
 
-    // fbq may not be ready immediately after Script load on first paint.
-    if (typeof window !== "undefined" && window.fbq) {
-      fire();
+    if (tryTrackPageView()) {
       return;
     }
 
+    const onPixelReady = () => {
+      tryTrackPageView();
+    };
+
+    window.addEventListener(META_PIXEL_READY_EVENT, onPixelReady);
+
     const timer = window.setInterval(() => {
-      if (window.fbq) {
+      if (tryTrackPageView()) {
         window.clearInterval(timer);
-        fire();
       }
     }, 100);
 
-    const timeout = window.setTimeout(() => {
-      window.clearInterval(timer);
-    }, 5000);
-
     return () => {
+      window.removeEventListener(META_PIXEL_READY_EVENT, onPixelReady);
       window.clearInterval(timer);
-      window.clearTimeout(timeout);
     };
   }, [pathname]);
 

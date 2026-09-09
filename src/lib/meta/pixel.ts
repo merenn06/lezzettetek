@@ -73,11 +73,15 @@ export function trackMetaPixelEvent(
     return false;
   }
 
-  const options: MetaPixelTrackOptions | undefined = eventId
-    ? { eventID: eventId }
-    : undefined;
-
-  fbq("track", eventName, params, options);
+  // fbq treats a missing 3rd arg as "no custom data"; passing undefined with a
+  // 4th eventID option can shift arguments and drop the PageView entirely.
+  if (eventId) {
+    fbq("track", eventName, params ?? {}, { eventID: eventId });
+  } else if (params) {
+    fbq("track", eventName, params);
+  } else {
+    fbq("track", eventName);
+  }
   return true;
 }
 

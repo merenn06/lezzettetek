@@ -32,6 +32,7 @@ export default function MetaPixel({ pathname = "" }: MetaPixelProps) {
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
           fbq('init', '${pixelId}');
+          window.dispatchEvent(new CustomEvent('meta-pixel-ready'));
         `}
       </Script>
       <noscript>
