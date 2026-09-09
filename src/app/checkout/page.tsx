@@ -15,6 +15,8 @@ import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
 import { trackMetaPixelEvent } from '@/lib/meta/pixel';
 
+const META_PIXEL_READY_EVENT = 'meta-pixel-ready';
+
 // Helper function to execute scripts from HTML content
 function executeScripts(container: HTMLElement) {
   const scripts = container.querySelectorAll('script');
@@ -89,41 +91,68 @@ export default function CheckoutPage() {
   const total = roundCurrency(couponResult.totalAfterDiscount + codFee);
 
   useEffect(() => {
-    if (initiateCheckoutTrackedRef.current) return;
     if (items.length === 0) return;
 
-    const contentIds = items
-      .map((item) => item.product.id)
-      .filter((id): id is string => Boolean(id));
-    if (contentIds.length === 0) return;
+    const tryTrackInitiateCheckout = (): boolean => {
+      if (initiateCheckoutTrackedRef.current) return true;
 
-    const numItems = items.reduce((sum, item) => sum + item.quantity, 0);
-    if (numItems <= 0) return;
+      const contentIds = items
+        .map((item) => item.product.id)
+        .filter((id): id is string => Boolean(id));
+      if (contentIds.length === 0) return false;
 
-    // Product/cart subtotal only — excludes shipping, COD fee, and coupon discount.
-    const value = subtotal;
-    if (value <= 0) return;
+      const numItems = items.reduce((sum, item) => sum + item.quantity, 0);
+      if (numItems <= 0) return false;
 
-    const eventId = buildMetaEventId(
-      META_EVENT_NAMES.INITIATE_CHECKOUT,
-      `${contentIds.join('_')}_${Date.now()}`
-    );
+      // Product/cart subtotal only — excludes shipping, COD fee, and coupon discount.
+      const value = subtotal;
+      if (value <= 0) return false;
 
-    const tracked = trackMetaPixelEvent(
-      META_EVENT_NAMES.INITIATE_CHECKOUT,
-      {
-        content_ids: contentIds,
-        content_type: 'product',
-        num_items: numItems,
-        value,
-        currency: 'TRY',
-      },
-      eventId
-    );
+      if (typeof window === 'undefined' || !window.fbq) return false;
 
-    if (tracked) {
-      initiateCheckoutTrackedRef.current = true;
+      const eventId = buildMetaEventId(
+        META_EVENT_NAMES.INITIATE_CHECKOUT,
+        `${contentIds.join('_')}_${Date.now()}`
+      );
+
+      const tracked = trackMetaPixelEvent(
+        META_EVENT_NAMES.INITIATE_CHECKOUT,
+        {
+          content_ids: contentIds,
+          content_type: 'product',
+          num_items: numItems,
+          value,
+          currency: 'TRY',
+        },
+        eventId
+      );
+
+      if (tracked) {
+        initiateCheckoutTrackedRef.current = true;
+      }
+      return tracked;
+    };
+
+    if (tryTrackInitiateCheckout()) {
+      return;
     }
+
+    const onPixelReady = () => {
+      tryTrackInitiateCheckout();
+    };
+
+    window.addEventListener(META_PIXEL_READY_EVENT, onPixelReady);
+
+    const timer = window.setInterval(() => {
+      if (tryTrackInitiateCheckout()) {
+        window.clearInterval(timer);
+      }
+    }, 100);
+
+    return () => {
+      window.removeEventListener(META_PIXEL_READY_EVENT, onPixelReady);
+      window.clearInterval(timer);
+    };
   }, [items, subtotal]);
 
   // Render iyzico form content when available
