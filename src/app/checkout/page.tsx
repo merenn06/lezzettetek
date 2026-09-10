@@ -13,7 +13,7 @@ import {
 } from '@/lib/coupons';
 import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
-import { trackMetaPixelEvent } from '@/lib/meta/pixel';
+import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
 
 const META_PIXEL_READY_EVENT = 'meta-pixel-ready';
 
@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const initiateCheckoutTrackedRef = useRef(false);
+  const initiateCheckoutEventIdRef = useRef<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -110,13 +111,18 @@ export default function CheckoutPage() {
 
       if (typeof window === 'undefined' || !window.fbq) return false;
 
-      const eventId = buildMetaEventId(
-        META_EVENT_NAMES.INITIATE_CHECKOUT,
-        `${contentIds.join('_')}_${Date.now()}`
-      );
+      if (!initiateCheckoutEventIdRef.current) {
+        initiateCheckoutEventIdRef.current = buildMetaEventId(
+          META_EVENT_NAMES.INITIATE_CHECKOUT,
+          `${contentIds.join('_')}_${Date.now()}`
+        );
+      }
 
-      const tracked = trackMetaPixelEvent(
+      const eventId = initiateCheckoutEventIdRef.current;
+
+      const tracked = trackBrowserEvent(
         META_EVENT_NAMES.INITIATE_CHECKOUT,
+        eventId,
         {
           content_ids: contentIds,
           content_type: 'product',
@@ -124,7 +130,7 @@ export default function CheckoutPage() {
           value,
           currency: 'TRY',
         },
-        eventId
+        '/checkout'
       );
 
       if (tracked) {

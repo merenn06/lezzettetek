@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product } from '@/types/product';
 import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
-import { trackMetaPixelEvent } from '@/lib/meta/pixel';
+import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
 
 interface CartItem {
   product: Product;
@@ -60,16 +60,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         META_EVENT_NAMES.ADD_TO_CART,
         `${product.id}_${Date.now()}`
       );
-      trackMetaPixelEvent(
+      trackBrowserEvent(
         META_EVENT_NAMES.ADD_TO_CART,
+        eventId,
         {
           content_ids: [product.id],
           content_name: product.name,
           content_type: 'product',
           value: product.price * quantityAdded,
           currency: 'TRY',
-        },
-        eventId
+        }
       );
     }
 

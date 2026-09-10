@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { META_EVENT_NAMES } from "@/lib/meta/constants";
 import { buildPageViewEventId } from "@/lib/meta/eventId";
-import { shouldRunMetaPixel, trackMetaPageView } from "@/lib/meta/pixel";
+import { shouldRunMetaPixel } from "@/lib/meta/pixel";
+import { trackBrowserEvent } from "@/lib/meta/track-browser-event";
 
 const META_PIXEL_READY_EVENT = "meta-pixel-ready";
 
@@ -31,7 +33,12 @@ export default function MetaPageViewTracker() {
       }
 
       const eventId = buildPageViewEventId(pathname);
-      const tracked = trackMetaPageView(eventId, pathname);
+      const tracked = trackBrowserEvent(
+        META_EVENT_NAMES.PAGE_VIEW,
+        eventId,
+        undefined,
+        pathname
+      );
       if (tracked) {
         lastTrackedPath.current = pathname;
       }

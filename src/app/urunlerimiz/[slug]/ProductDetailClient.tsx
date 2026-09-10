@@ -10,7 +10,7 @@ import ProductReviews from '@/components/ProductReviews';
 import ProductImageSlider from '@/components/ProductImageSlider';
 import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
-import { trackMetaPixelEvent } from '@/lib/meta/pixel';
+import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
 
 const CATEGORY_STYLES: Record<string, { badge: string; gradient: string }> = {
   kavanoz: { badge: 'bg-green-100 text-green-700', gradient: 'from-green-200 to-green-300' },
@@ -42,16 +42,16 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     }
 
     const eventId = buildMetaEventId(META_EVENT_NAMES.VIEW_CONTENT, productId);
-    const tracked = trackMetaPixelEvent(
+    const tracked = trackBrowserEvent(
       META_EVENT_NAMES.VIEW_CONTENT,
+      eventId,
       {
         content_ids: [productId],
         content_name: productName,
         content_type: 'product',
         value: productPrice,
         currency: 'TRY',
-      },
-      eventId
+      }
     );
 
     if (tracked) {
