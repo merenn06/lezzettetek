@@ -5,6 +5,7 @@ import type { Product } from '@/types/product';
 import { getProductReviews } from '@/lib/reviews/actions';
 import { generateProductSchema } from '@/lib/seo/productSchema';
 import ProductDetailClient from './ProductDetailClient';
+import { RETAIL_SALES_CHANNEL } from '@/lib/products/retail-store';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -48,6 +49,7 @@ export default async function ProductDetailPage({
     .select('*')
     .eq('slug', slug)
     .eq('is_active', true)
+    .eq('sales_channel', RETAIL_SALES_CHANNEL)
     .maybeSingle();
 
   if (error || !product) {

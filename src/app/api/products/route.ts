@@ -1,6 +1,7 @@
 // src/app/api/products/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { RETAIL_SALES_CHANNEL } from "@/lib/products/retail-store";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -34,7 +35,9 @@ export async function GET(request: Request) {
     // products tablosunu çekiyoruz
     let query = supabase.from("products").select("*");
 
-    // Varsayılan: sadece aktif ürünler
+    // Perakende vitrin: 995 kampanya SKU'ları hariç
+    query = query.eq("sales_channel", RETAIL_SALES_CHANNEL);
+
     if (!includeInactive) {
       query = query.eq("is_active", true);
     }

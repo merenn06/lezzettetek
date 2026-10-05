@@ -14,6 +14,7 @@ import {
 import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
 import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
+import CheckoutOrderSummary from './CheckoutOrderSummary';
 
 const META_PIXEL_READY_EVENT = 'meta-pixel-ready';
 
@@ -67,7 +68,7 @@ export default function CheckoutPage() {
     // Shipping
     shippingMethod: 'yurtici-kargo',
     // Payment
-    paymentMethod: 'kapida-odeme',
+    paymentMethod: 'siteden-odeme',
     codPaymentType: 'card' as 'cash' | 'card',
     // Confirmation
     termsAccepted: false,
@@ -446,6 +447,26 @@ export default function CheckoutPage() {
     }
   };
 
+  const orderSummaryProps = {
+    formatPrice,
+    subtotal,
+    shipping,
+    isCodPayment,
+    codFee,
+    total,
+    discountAmount,
+    couponInput,
+    onCouponInputChange: setCouponInput,
+    onApplyCoupon: handleApplyCoupon,
+    appliedCoupon,
+    couponError,
+    onClearCouponError: () => setCouponError(null),
+    couponDiscountPercent: couponResult.discountPercent,
+    couponCodeLabel: COUPON_CODE,
+    isSubmitting,
+    onSubmitClick: handleSubmit,
+  };
+
   if (items.length === 0) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -537,99 +558,8 @@ export default function CheckoutPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Order Summary - RIGHT COLUMN (shown first on mobile) */}
-          <div className="lg:col-span-1 lg:order-2 order-1">
-            <div className="bg-white rounded-xl shadow-md p-6 md:sticky md:top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Sipariş Özeti</h2>
-
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between text-gray-700">
-                  <span>Ara Toplam:</span>
-                  <span className="font-semibold">{formatPrice(subtotal)} ₺</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Kargo:</span>
-                  <span className="font-semibold">
-                    {shipping > 0 ? `${formatPrice(shipping)} ₺` : 'Ücretsiz'}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700" htmlFor="coupon-code">
-                    Kupon Kodu
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      id="coupon-code"
-                      type="text"
-                      value={couponInput}
-                      onChange={(e) => {
-                        setCouponInput(e.target.value);
-                        if (couponError) {
-                          setCouponError(null);
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="Kupon kodu"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleApplyCoupon}
-                      className="px-4 py-2 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-                    >
-                      Uygula
-                    </button>
-                  </div>
-                  {appliedCoupon && (
-                    <p className="text-sm text-green-700">
-                      Kupon uygulandı: {COUPON_CODE} (%{couponResult.discountPercent})
-                    </p>
-                  )}
-                  {couponError && (
-                    <p className="text-sm text-red-600">{couponError}</p>
-                  )}
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-green-700">
-                    <span>İndirim:</span>
-                    <span className="font-semibold">- {formatPrice(discountAmount)} ₺</span>
-                  </div>
-                )}
-                {isCodPayment && (
-                  <div className="flex justify-between text-gray-700">
-                    <span>Kapıda Ödeme Bedeli:</span>
-                    <span className="font-semibold">{formatPrice(codFee)} ₺</span>
-                  </div>
-                )}
-                <div className="border-t border-gray-200 pt-4 flex justify-between">
-                  <span className="text-lg font-bold text-gray-900">Toplam:</span>
-                  <span className="text-2xl font-bold text-green-700">
-                    {formatPrice(total)} ₺
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  form="checkout-form"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full py-4 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Gönderiliyor...' : 'Siparişi Tamamla'}
-                </button>
-                <Link
-                  href="/cart"
-                  className="block w-full py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-center"
-                >
-                  Sepete Geri Dön
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Checkout Form - LEFT COLUMN */}
-          <div className="lg:col-span-2 lg:order-1 order-2">
+          {/* Checkout Form — DOM first: mobile top-to-bottom; lg grid col 1 */}
+          <div className="lg:col-span-2">
             <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
               {/* 1. Contact Info */}
               <div className="bg-white rounded-xl shadow-md p-6">
@@ -1053,6 +983,14 @@ export default function CheckoutPage() {
               </div>
             </form>
 
+            {/* Sipariş özeti — yalnızca mobil (< lg), Onay bölümünden sonra */}
+            <div className="mt-6 lg:hidden">
+              <CheckoutOrderSummary
+                {...orderSummaryProps}
+                couponInputId="checkout-coupon-code-mobile"
+              />
+            </div>
+
             {/* iyzico Checkout Form */}
             {showIyzicoForm && (
               <div className="bg-white rounded-xl shadow-md p-6 mt-6">
@@ -1064,6 +1002,15 @@ export default function CheckoutPage() {
                 />
               </div>
             )}
+          </div>
+
+          {/* Sipariş özeti — masaüstü sağ kolon (lg+) */}
+          <div className="hidden lg:block lg:col-span-1">
+            <CheckoutOrderSummary
+              {...orderSummaryProps}
+              couponInputId="checkout-coupon-code-desktop"
+              stickyOnDesktop
+            />
           </div>
         </div>
       </div>

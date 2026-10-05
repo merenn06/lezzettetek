@@ -21,5 +21,6 @@ export type Product = {
    * Sadece wholesale akışında true olarak set edilir.
    */
   is_wholesale?: boolean;
+  sales_channel?: 'retail' | 'campaign_995';
 };
 

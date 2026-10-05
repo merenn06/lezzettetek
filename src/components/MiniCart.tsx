@@ -4,6 +4,7 @@ import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { remainingForFreeShipping } from '@/lib/shipping';
+import { getProductDetailPath } from '@/lib/products/product-detail-path';
 
 export default function MiniCart() {
   const {
@@ -190,6 +191,7 @@ export default function MiniCart() {
                 {items.map((item) => {
                   const itemPrice = item.product.price || 0;
                   const itemTotal = itemPrice * item.quantity;
+                  const productHref = getProductDetailPath(item.product);
                   return (
                     <div
                       key={item.product.id}
@@ -197,16 +199,20 @@ export default function MiniCart() {
                     >
                       {/* Thumbnail */}
                       {item.imageUrl ? (
-                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 bg-white">
+                        <Link
+                          href={productHref}
+                          className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 bg-white"
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={item.imageUrl}
                             alt={item.product.name}
                             className="w-full h-full object-cover"
                           />
-                        </div>
+                        </Link>
                       ) : (
-                        <div
+                        <Link
+                          href={productHref}
                           className="w-16 h-16 bg-gradient-to-br from-green-200 to-green-400 rounded-lg flex-shrink-0 flex items-center justify-center"
                         >
                           <svg
@@ -222,14 +228,17 @@ export default function MiniCart() {
                               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                             />
                           </svg>
-                        </div>
+                        </Link>
                       )}
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-gray-900 truncate">
+                        <Link
+                          href={productHref}
+                          className="text-sm font-semibold text-gray-900 truncate block hover:text-green-700"
+                        >
                           {item.product.name}
-                        </h3>
+                        </Link>
 
                         {/* Quantity Controls */}
                         <div className="flex items-center gap-2 mt-2">

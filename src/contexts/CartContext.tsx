@@ -1,10 +1,21 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { Product } from '@/types/product';
 import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
 import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
+import {
+  loadCartFromStorage,
+  saveCartToStorage,
+  type StoredCartItem,
+} from '@/lib/cart/storage';
 
 interface CartItem {
   product: Product;
@@ -32,6 +43,17 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isMiniCartOpen, setIsMiniCartOpen] = useState(false);
+  const [isCartHydrated, setIsCartHydrated] = useState(false);
+
+  useEffect(() => {
+    setItems(loadCartFromStorage());
+    setIsCartHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isCartHydrated) return;
+    saveCartToStorage(items as StoredCartItem[]);
+  }, [items, isCartHydrated]);
 
   const addItem = (product: Product) => {
     const quantityAdded = 1;
@@ -50,7 +72,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         {
           product,
           quantity: 1,
-          imageUrl: (product as any).image_url ?? null,
+          imageUrl: product.image_url ?? null,
         },
       ];
     });
@@ -73,7 +95,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    // Auto-open mini-cart when item is added
     setIsMiniCartOpen(true);
   };
 
@@ -100,10 +121,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             ? { ...item, quantity: item.quantity - 1 }
             : item
         );
-      } else {
-        // Remove item if quantity is 1 or less
-        return prevItems.filter((item) => item.product.id !== productId);
       }
+      return prevItems.filter((item) => item.product.id !== productId);
     });
   };
 

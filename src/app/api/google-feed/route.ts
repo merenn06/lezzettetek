@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { RETAIL_SALES_CHANNEL } from "@/lib/products/retail-store";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -61,6 +62,7 @@ export async function GET() {
     .from("products")
     .select("id,name,slug,description,content,price,image_url,stock")
     .eq("is_active", true)
+    .eq("sales_channel", RETAIL_SALES_CHANNEL)
     .order("sort_order", { ascending: true });
 
   if (error) {

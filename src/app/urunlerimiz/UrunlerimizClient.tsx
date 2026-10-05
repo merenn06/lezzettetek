@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Product } from '@/types/product';
+import { filterRetailStoreProducts } from '@/lib/products/retail-store';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
 import PartnersLogos from '@/components/PartnersLogos';
@@ -38,7 +39,8 @@ export default function UrunlerimizClient() {
           throw new Error('Ürünler yüklenemedi');
         }
         const data = await response.json();
-        setProducts(Array.isArray(data?.products) ? (data.products as Product[]) : []);
+        const raw = Array.isArray(data?.products) ? (data.products as Product[]) : [];
+        setProducts(filterRetailStoreProducts(raw));
       } catch (err) {
         console.error('Ürünleri çekerken hata:', err);
         setError('Ürünleri alırken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.');

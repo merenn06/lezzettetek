@@ -65,6 +65,15 @@ export default function Header() {
     return pathname.startsWith(href);
   };
 
+  const isCampaign995Active = pathname.startsWith("/995-kampanyasi");
+
+  const campaignCtaBase =
+    "inline-flex items-center justify-center shrink-0 rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white font-bold whitespace-nowrap transition-[transform,box-shadow,filter] duration-300 ease-out hover:scale-[1.03] hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2";
+
+  const campaignCtaGlow = isCampaign995Active
+    ? "campaign-nav-cta-glow-active"
+    : "campaign-nav-cta-glow";
+
   return (
     <header
       className={`sticky top-0 z-50 transition-shadow ${
@@ -83,7 +92,7 @@ export default function Header() {
                   width={200}
                   height={56}
                   className="h-12 w-auto md:h-14"
-                  priority
+                  sizes="(max-width: 768px) 120px, 160px"
                 />
               </Link>
             </div>
@@ -105,8 +114,19 @@ export default function Header() {
               ))}
             </nav>
 
-            {/* Sağ: Desktop - Hesap + Sepet */}
-            <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+            {/* Sağ: Desktop - Kampanya CTA + Hesap + Sepet */}
+            <div className="hidden md:flex items-center gap-2 lg:gap-3 xl:gap-4 flex-shrink-0">
+              <Link
+                href="/995-kampanyasi"
+                aria-current={isCampaign995Active ? "page" : undefined}
+                className={`${campaignCtaBase} ${campaignCtaGlow} px-2.5 py-1.5 text-[11px] lg:px-3 lg:py-1.5 lg:text-xs xl:px-4 xl:py-2 xl:text-sm`}
+              >
+                <span className="hidden xl:inline" aria-hidden>
+                  🔥{" "}
+                </span>
+                <span className="hidden lg:inline">995 TL KAMPANYASI</span>
+                <span className="lg:hidden">995 TL</span>
+              </Link>
               <AccountButton
                 isLoggedIn={isLoggedIn}
                 variant="desktop"
@@ -248,6 +268,32 @@ export default function Header() {
                     {link.label}
                   </Link>
                 ))}
+
+                <Link
+                  href="/995-kampanyasi"
+                  onClick={() => setMobileOpen(false)}
+                  aria-current={isCampaign995Active ? "page" : undefined}
+                  className={`mt-2 flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-4 py-3 text-left text-white shadow-md transition-[transform,box-shadow] duration-300 active:scale-[0.99] ${
+                    isCampaign995Active
+                      ? "campaign-nav-cta-glow-active ring-2 ring-orange-300/80"
+                      : "campaign-nav-cta-glow"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-base font-bold leading-tight">
+                      🔥 995 TL KAMPANYASI
+                    </span>
+                    <span className="mt-0.5 block text-xs font-medium text-white/90">
+                      Tek fiyat • Bir sürü seçenek
+                    </span>
+                  </span>
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-lg leading-none"
+                    aria-hidden
+                  >
+                    →
+                  </span>
+                </Link>
               </div>
             </nav>
           )}

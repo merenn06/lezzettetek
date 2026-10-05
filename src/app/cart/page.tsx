@@ -3,6 +3,7 @@
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { remainingForFreeShipping } from '@/lib/shipping';
+import { getProductDetailPath } from '@/lib/products/product-detail-path';
 
 export default function CartPage() {
   const { items, removeItem, clearCart, getTotalPrice } = useCart();
@@ -93,6 +94,7 @@ export default function CartPage() {
               {items.map((item) => {
                 const itemPrice = item.product.price || 0;
                 const itemTotal = itemPrice * item.quantity;
+                const productHref = getProductDetailPath(item.product);
                 return (
                   <div
                     key={item.product.id}
@@ -100,7 +102,7 @@ export default function CartPage() {
                   >
                     {/* Product Image */}
                     <Link
-                      href={`/urunlerimiz/${item.product.slug}`}
+                      href={productHref}
                       className="w-24 h-24 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center"
                     >
                       {(item.imageUrl || (item.product as any).image_url) ? (
@@ -134,7 +136,7 @@ export default function CartPage() {
                     {/* Product Info */}
                     <div className="flex-1">
                       <Link
-                        href={`/urunlerimiz/${item.product.slug}`}
+                        href={productHref}
                         className="text-xl font-bold text-gray-900 hover:text-green-700 transition-colors mb-2 block"
                       >
                         {item.product.name}
