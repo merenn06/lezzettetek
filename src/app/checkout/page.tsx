@@ -15,8 +15,22 @@ import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
 import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
 import CheckoutOrderSummary from './CheckoutOrderSummary';
+import CheckoutTurnstile, { type CheckoutTurnstileRef } from './CheckoutTurnstile';
 
 const META_PIXEL_READY_EVENT = 'meta-pixel-ready';
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+
+function resolveNonIyzicoPaymentMethod(
+  formPaymentMethod: string
+): 'kapida' | 'havale' | null {
+  if (formPaymentMethod === 'kapida-odeme') {
+    return 'kapida';
+  }
+  if (formPaymentMethod === 'havale-odeme') {
+    return 'havale';
+  }
+  return null;
+}
 
 // Helper function to execute scripts from HTML content
 function executeScripts(container: HTMLElement) {
@@ -46,6 +60,9 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const initiateCheckoutTrackedRef = useRef(false);
   const initiateCheckoutEventIdRef = useRef<string | null>(null);
+  const turnstileRef = useRef<CheckoutTurnstileRef>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -279,6 +296,17 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!TURNSTILE_SITE_KEY) {
+      setApiError('Güvenlik doğrulaması yapılandırılmamış. Sipariş gönderilemez.');
+      return;
+    }
+
+    if (!turnstileToken) {
+      setTurnstileError('Lütfen güvenlik doğrulamasını tamamlayın.');
+      setApiError('Lütfen güvenlik doğrulamasını tamamlayın.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Clear previous errors
@@ -315,6 +343,7 @@ export default function CheckoutPage() {
           invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
           invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
           couponCode: appliedCoupon,
+          turnstile_token: turnstileToken,
           items: items.map((item) => ({
             product_id: item.product.id,
             product_name: item.product.name,
@@ -366,18 +395,18 @@ export default function CheckoutPage() {
         }, 100);
       } catch (error) {
         setApiError(error instanceof Error ? error.message : 'Ödeme başlatılırken bir hata oluştu');
+        turnstileRef.current?.reset();
         setIsSubmitting(false);
       }
       return;
     }
 
-    // Regular payment flow (kapida-odeme)
-    const paymentMethodMap: Record<string, 'havale' | 'kapida'> = {
-      'kapida-odeme': 'kapida',
-      'siteden-odeme': 'havale',
-    };
-
-    const paymentMethod = paymentMethodMap[formData.paymentMethod] || 'kapida';
+    const paymentMethod = resolveNonIyzicoPaymentMethod(formData.paymentMethod);
+    if (!paymentMethod) {
+      setApiError('Geçersiz ödeme yöntemi seçildi.');
+      setIsSubmitting(false);
+      return;
+    }
 
     // Prepare order data for API
     const invoiceType = formData.corporateInvoice ? 'corporate' : 'individual';
@@ -397,6 +426,7 @@ export default function CheckoutPage() {
       invoice_tax_number: formData.corporateInvoice ? formData.taxNumber.trim() : null,
       invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
       couponCode: appliedCoupon,
+      turnstile_token: turnstileToken,
       items: items.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -442,6 +472,7 @@ export default function CheckoutPage() {
       }, 2000);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : 'Sipariş gönderilirken bir hata oluştu');
+      turnstileRef.current?.reset();
     } finally {
       setIsSubmitting(false);
     }
@@ -978,6 +1009,30 @@ export default function CheckoutPage() {
                   </label>
                   {errors.privacyAccepted && (
                     <p className="ml-7 text-sm text-red-500">{errors.privacyAccepted}</p>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <p className="text-sm font-medium text-gray-700 mb-3">
+                    Güvenlik doğrulaması
+                  </p>
+                  <CheckoutTurnstile
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onToken={(token) => {
+                      setTurnstileToken(token);
+                      if (token) {
+                        setTurnstileError(null);
+                      }
+                    }}
+                    onError={() => {
+                      setTurnstileError(
+                        'Güvenlik doğrulaması yüklenemedi. Sayfayı yenileyip tekrar deneyin.'
+                      );
+                    }}
+                  />
+                  {turnstileError && (
+                    <p className="mt-2 text-sm text-red-600">{turnstileError}</p>
                   )}
                 </div>
               </div>

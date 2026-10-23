@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabaseClient } from '@/lib/supabaseClient';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+  }
+
   try {
     if (!supabaseClient) {
       return NextResponse.json(

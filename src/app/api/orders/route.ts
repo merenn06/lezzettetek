@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import {
   createOrderWithItems,
+  resolveOrderItemsFromDatabase,
   type CreateOrderInput,
-  type OrderItemInput,
 } from "@/lib/orders";
+import {
+  TurnstileVerificationError,
+  verifyTurnstileToken,
+} from "@/lib/turnstile/verify";
 import { sendOrderConfirmationEmail } from "@/lib/mailer";
 import { sendMetaPurchaseCapi } from "@/lib/meta/purchase";
 import { supabase } from "@/lib/supabaseClient";
@@ -29,6 +33,7 @@ type CheckoutRequestBody = {
   invoice_tax_number?: string | null;
   invoice_tax_office?: string | null;
   couponCode?: string | null;
+  turnstile_token?: string | null;
   items: Array<{
     product_id: string;
     product_name: string;
@@ -119,6 +124,18 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as unknown;
 
+    const turnstileToken =
+      body && typeof body === "object"
+        ? (body as CheckoutRequestBody).turnstile_token
+        : undefined;
+
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      null;
+
+    await verifyTurnstileToken(turnstileToken, clientIp);
+
     validateRequest(body);
 
     const {
@@ -158,12 +175,7 @@ export async function POST(req: Request) {
       normalized_shipping_payment_type: shipping_payment_type,
     });
 
-    const mappedItems: OrderItemInput[] = items.map((item) => ({
-      product_id: item.product_id,
-      product_name: item.product_name,
-      unit_price: item.unit_price,
-      quantity: item.quantity,
-    }));
+    const mappedItems = await resolveOrderItemsFromDatabase(items);
 
     const subtotal = mappedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
     const shippingFee = calculateShipping(subtotal);
@@ -257,16 +269,31 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof TurnstileVerificationError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: error.statusCode }
+      );
+    }
+
     console.error("Sipariş oluşturma hatası:", error);
     const message =
-      error?.message || "Sipariş oluşturulurken bilinmeyen bir hata oluştu.";
+      error instanceof Error
+        ? error.message
+        : "Sipariş oluşturulurken bilinmeyen bir hata oluştu.";
+    const status =
+      message.includes("Sepetinizde") ||
+      message.includes("satışta değil") ||
+      message.includes("stok")
+        ? 400
+        : 500;
     return NextResponse.json(
       {
         success: false,
         error: message,
       },
-      { status: 500 }
+      { status }
     );
   }
 }

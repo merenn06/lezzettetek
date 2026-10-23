@@ -9,6 +9,13 @@ export type OrderItemInput = {
   quantity: number;
 };
 
+export type RawOrderLineInput = {
+  product_id: string;
+  quantity: number;
+  product_name?: string;
+  unit_price?: number;
+};
+
 export type CreateOrderInput = {
   customer_name: string;
   phone: string;
@@ -26,6 +33,150 @@ export type CreateOrderInput = {
   campaign_code?: string | null;
   discount_amount?: number | null;
 };
+
+/**
+ * Resolves cart lines from the database — ignores client-supplied prices and names.
+ */
+export async function resolveOrderItemsFromDatabase(
+  items: RawOrderLineInput[]
+): Promise<OrderItemInput[]> {
+  if (!supabase) {
+    throw new Error('Supabase client başlatılamadı. Env değişkenlerini kontrol et.');
+  }
+
+  if (!items || items.length === 0) {
+    throw new Error('Sipariş en az bir ürün içermelidir.');
+  }
+
+  const quantityByProductId = new Map<string, number>();
+
+  for (const [index, item] of items.entries()) {
+    const productId = String(item.product_id || '').trim();
+    if (!productId) {
+      throw new Error(`Geçersiz ürün satırı (index ${index}): product_id zorunlu.`);
+    }
+
+    const quantity = item.quantity;
+    if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity <= 0) {
+      throw new Error(
+        `Geçersiz ürün satırı (index ${index}): quantity pozitif tam sayı olmalı.`
+      );
+    }
+
+    quantityByProductId.set(
+      productId,
+      (quantityByProductId.get(productId) || 0) + quantity
+    );
+  }
+
+  const productIds = [...quantityByProductId.keys()];
+
+  const { data: products, error: productsError } = await supabase
+    .from('products')
+    .select('id, name, price, stock, is_active, sales_channel')
+    .in('id', productIds);
+
+  if (productsError) {
+    console.error('[orders] product lookup failed:', productsError);
+    throw new Error('Ürün bilgileri doğrulanırken bir hata oluştu.');
+  }
+
+  if (!products || products.length !== productIds.length) {
+    throw new Error('Sepetinizde geçersiz veya satışta olmayan ürün bulunuyor.');
+  }
+
+  const productById = new Map(products.map((p) => [p.id, p]));
+
+  const campaignProductIds = products
+    .filter((p) => p.sales_channel === 'campaign_995')
+    .map((p) => p.id);
+
+  const campaignPackageByProductId = new Map<
+    string,
+    { price: number; is_active: boolean }
+  >();
+
+  if (campaignProductIds.length > 0) {
+    const { data: campaignPackages, error: campaignPackagesError } = await supabase
+      .from('campaign_995_packages')
+      .select('product_id, price, is_active')
+      .in('product_id', campaignProductIds);
+
+    if (campaignPackagesError) {
+      console.error('[orders] campaign package lookup failed:', campaignPackagesError);
+      throw new Error('Kampanya ürün bilgileri doğrulanırken bir hata oluştu.');
+    }
+
+    for (const pkg of campaignPackages ?? []) {
+      if (!pkg?.product_id) continue;
+      campaignPackageByProductId.set(pkg.product_id, {
+        price: Number(pkg.price),
+        is_active: pkg.is_active !== false,
+      });
+    }
+  }
+
+  const resolved: OrderItemInput[] = [];
+
+  for (const [productId, quantity] of quantityByProductId) {
+    const product = productById.get(productId);
+    if (!product) {
+      throw new Error('Sepetinizde geçersiz veya satışta olmayan ürün bulunuyor.');
+    }
+
+    if (product.is_active === false) {
+      throw new Error(`"${product.name}" şu anda satışta değil.`);
+    }
+
+    const salesChannel = product.sales_channel ?? 'retail';
+    let unitPrice: number;
+
+    if (salesChannel === 'campaign_995') {
+      const campaignPackage = campaignPackageByProductId.get(productId);
+      if (!campaignPackage || !campaignPackage.is_active) {
+        throw new Error(`"${product.name}" kampanya paketi şu anda satışta değil.`);
+      }
+
+      unitPrice = campaignPackage.price;
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new Error(`"${product.name}" için geçersiz kampanya fiyatı.`);
+      }
+
+      const catalogPrice = Number(product.price);
+      if (
+        Number.isFinite(catalogPrice) &&
+        Math.abs(catalogPrice - unitPrice) > 0.01
+      ) {
+        console.warn('[orders] campaign price mismatch (using package price)', {
+          productId,
+          catalogPrice,
+          packagePrice: unitPrice,
+        });
+      }
+    } else if (salesChannel === 'retail') {
+      unitPrice = Number(product.price);
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new Error(`"${product.name}" için geçersiz fiyat.`);
+      }
+    } else {
+      throw new Error(`"${product.name}" bu kanaldan sipariş edilemez.`);
+    }
+
+    const stock = Number(product.stock);
+    if (Number.isFinite(stock) && quantity > stock) {
+      throw new Error(`"${product.name}" için yeterli stok yok (kalan: ${stock}).`);
+    }
+
+    resolved.push({
+      product_id: productId,
+      product_name: String(product.name),
+      unit_price: unitPrice,
+      quantity,
+    });
+  }
+
+  return resolved;
+}
 
 export async function createOrderWithItems(
   orderData: CreateOrderInput,

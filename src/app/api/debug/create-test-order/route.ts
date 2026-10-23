@@ -2,7 +2,17 @@ import { NextResponse } from 'next/server';
 import { createOrderWithItems, type CreateOrderInput, type OrderItemInput } from '@/lib/orders';
 import { supabase } from '@/lib/supabaseClient';
 
+function blockInProduction() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+  }
+  return null;
+}
+
 async function createTestOrderResponse() {
+  const blocked = blockInProduction();
+  if (blocked) return blocked;
+
   try {
     if (!supabase) {
       return NextResponse.json(
