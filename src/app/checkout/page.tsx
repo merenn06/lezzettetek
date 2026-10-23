@@ -61,8 +61,6 @@ export default function CheckoutPage() {
   const initiateCheckoutTrackedRef = useRef(false);
   const initiateCheckoutEventIdRef = useRef<string | null>(null);
   const turnstileRef = useRef<CheckoutTurnstileRef>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -301,17 +299,23 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!turnstileToken) {
-      setTurnstileError('Lütfen güvenlik doğrulamasını tamamlayın.');
-      setApiError('Lütfen güvenlik doğrulamasını tamamlayın.');
-      return;
-    }
-
     setIsSubmitting(true);
-
-    // Clear previous errors
     setApiError(null);
     setSuccessMessage(null);
+
+    let turnstileToken: string;
+    try {
+      turnstileToken = await turnstileRef.current!.execute();
+    } catch (error) {
+      setApiError(
+        error instanceof Error
+          ? error.message
+          : 'Güvenlik doğrulaması tamamlanamadı. Lütfen tekrar deneyin.'
+      );
+      turnstileRef.current?.reset();
+      setIsSubmitting(false);
+      return;
+    }
 
     // Debug: log selected COD payment type at checkout submit time
     try {
@@ -1012,31 +1016,12 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <p className="text-sm font-medium text-gray-700 mb-3">
-                    Güvenlik doğrulaması
-                  </p>
-                  <CheckoutTurnstile
-                    ref={turnstileRef}
-                    siteKey={TURNSTILE_SITE_KEY}
-                    onToken={(token) => {
-                      setTurnstileToken(token);
-                      if (token) {
-                        setTurnstileError(null);
-                      }
-                    }}
-                    onError={() => {
-                      setTurnstileError(
-                        'Güvenlik doğrulaması yüklenemedi. Sayfayı yenileyip tekrar deneyin.'
-                      );
-                    }}
-                  />
-                  {turnstileError && (
-                    <p className="mt-2 text-sm text-red-600">{turnstileError}</p>
-                  )}
-                </div>
               </div>
             </form>
+
+            {TURNSTILE_SITE_KEY ? (
+              <CheckoutTurnstile ref={turnstileRef} siteKey={TURNSTILE_SITE_KEY} />
+            ) : null}
 
             {/* Sipariş özeti — yalnızca mobil (< lg), Onay bölümünden sonra */}
             <div className="mt-6 lg:hidden">

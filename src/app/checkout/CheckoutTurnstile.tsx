@@ -6,15 +6,19 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 
 const TURNSTILE_SCRIPT_SRC =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
+const EXECUTE_TIMEOUT_MS = 15_000;
+
 declare global {
   interface Window {
     turnstile?: {
       render: (container: HTMLElement, options: Record<string, unknown>) => string;
+      execute: (widgetId: string) => void;
       reset: (widgetId?: string) => void;
       remove: (widgetId: string) => void;
     };
@@ -22,13 +26,19 @@ declare global {
 }
 
 export type CheckoutTurnstileRef = {
+  execute: () => Promise<string>;
   reset: () => void;
+  isReady: () => boolean;
 };
 
 type CheckoutTurnstileProps = {
   siteKey: string;
-  onToken: (token: string | null) => void;
-  onError?: () => void;
+};
+
+type PendingExecution = {
+  resolve: (token: string) => void;
+  reject: (error: Error) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
 };
 
 function loadTurnstileScript(): Promise<void> {
@@ -69,21 +79,87 @@ function loadTurnstileScript(): Promise<void> {
 }
 
 const CheckoutTurnstile = forwardRef<CheckoutTurnstileRef, CheckoutTurnstileProps>(
-  function CheckoutTurnstile({ siteKey, onToken, onError }, ref) {
+  function CheckoutTurnstile({ siteKey }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const widgetIdRef = useRef<string | null>(null);
+    const pendingRef = useRef<PendingExecution | null>(null);
+    const [ready, setReady] = useState(false);
+
+    const rejectPending = useCallback((error: Error) => {
+      const pending = pendingRef.current;
+      if (!pending) return;
+      clearTimeout(pending.timeoutId);
+      pendingRef.current = null;
+      pending.reject(error);
+    }, []);
 
     const reset = useCallback(() => {
-      onToken(null);
+      rejectPending(new Error("Turnstile reset"));
       if (window.turnstile && widgetIdRef.current) {
         window.turnstile.reset(widgetIdRef.current);
       }
-    }, [onToken]);
+    }, [rejectPending]);
 
-    useImperativeHandle(ref, () => ({ reset }), [reset]);
+    const execute = useCallback((): Promise<string> => {
+      if (!siteKey) {
+        return Promise.reject(
+          new Error("Güvenlik doğrulaması yapılandırılmamış. Sipariş gönderilemez.")
+        );
+      }
+      if (!ready || !window.turnstile || !widgetIdRef.current) {
+        return Promise.reject(
+          new Error(
+            "Güvenlik doğrulaması henüz hazır değil. Lütfen birkaç saniye bekleyip tekrar deneyin."
+          )
+        );
+      }
+
+      if (pendingRef.current) {
+        return Promise.reject(
+          new Error("Güvenlik doğrulaması devam ediyor. Lütfen bekleyin.")
+        );
+      }
+
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          pendingRef.current = null;
+          reset();
+          reject(
+            new Error(
+              "Güvenlik doğrulaması zaman aşımına uğradı. Lütfen tekrar deneyin."
+            )
+          );
+        }, EXECUTE_TIMEOUT_MS);
+
+        pendingRef.current = { resolve, reject, timeoutId };
+
+        try {
+          window.turnstile!.execute(widgetIdRef.current!);
+        } catch (error) {
+          clearTimeout(timeoutId);
+          pendingRef.current = null;
+          reject(
+            error instanceof Error
+              ? error
+              : new Error("Güvenlik doğrulaması başlatılamadı.")
+          );
+        }
+      });
+    }, [ready, reset, siteKey]);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        execute,
+        reset,
+        isReady: () => ready,
+      }),
+      [execute, ready, reset]
+    );
 
     useEffect(() => {
       if (!siteKey || !containerRef.current) {
+        setReady(false);
         return;
       }
 
@@ -102,42 +178,59 @@ const CheckoutTurnstile = forwardRef<CheckoutTurnstileRef, CheckoutTurnstileProp
 
           widgetIdRef.current = window.turnstile.render(containerRef.current, {
             sitekey: siteKey,
-            theme: "light",
-            callback: (token: string) => onToken(token),
-            "expired-callback": () => onToken(null),
+            size: "invisible",
+            execution: "execute",
+            callback: (token: string) => {
+              const pending = pendingRef.current;
+              if (!pending) return;
+              clearTimeout(pending.timeoutId);
+              pendingRef.current = null;
+              pending.resolve(token);
+            },
+            "expired-callback": () => {
+              rejectPending(
+                new Error(
+                  "Güvenlik doğrulamasının süresi doldu. Lütfen tekrar deneyin."
+                )
+              );
+              reset();
+            },
             "error-callback": () => {
-              onToken(null);
-              onError?.();
+              rejectPending(
+                new Error(
+                  "Güvenlik doğrulaması başarısız oldu. Lütfen tekrar deneyin."
+                )
+              );
+              reset();
             },
           });
+
+          setReady(true);
         })
         .catch(() => {
-          onToken(null);
-          onError?.();
+          setReady(false);
         });
 
       return () => {
         cancelled = true;
+        setReady(false);
+        rejectPending(new Error("Turnstile unmounted"));
         if (window.turnstile && widgetIdRef.current) {
           window.turnstile.remove(widgetIdRef.current);
           widgetIdRef.current = null;
         }
       };
-    }, [siteKey, onToken, onError]);
+    }, [rejectPending, reset, siteKey]);
 
     if (!siteKey) {
-      return (
-        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          Güvenlik doğrulaması yapılandırılmamış. Sipariş gönderilemez.
-        </p>
-      );
+      return null;
     }
 
     return (
       <div
         ref={containerRef}
-        className="min-h-[65px] flex items-center justify-start"
-        aria-label="Güvenlik doğrulaması"
+        className="fixed left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0 pointer-events-none"
+        aria-hidden="true"
       />
     );
   }
