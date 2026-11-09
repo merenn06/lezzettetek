@@ -32,8 +32,19 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const includeInactive = url.searchParams.get("include_inactive") === "1";
 
-    // products tablosunu çekiyoruz
-    let query = supabase.from("products").select("*");
+    let query = supabase
+      .from("products")
+      .select(
+        `
+        *,
+        category:categories (
+          id,
+          slug,
+          name,
+          sort_order
+        )
+      `
+      );
 
     // Perakende vitrin: 995 kampanya SKU'ları hariç
     query = query.eq("sales_channel", RETAIL_SALES_CHANNEL);
@@ -89,6 +100,7 @@ export async function POST(request: Request) {
       unit_price_text,
       compare_at_price,
       origin,
+      category_id,
     } = body;
 
     // Validation
@@ -127,6 +139,10 @@ export async function POST(request: Request) {
         image_url_2: image_url_2 || null,
         unit_price_text: unit_price_text?.trim() || null,
         origin: origin?.trim() || null,
+        category_id:
+          typeof category_id === "string" && category_id.trim()
+            ? category_id.trim()
+            : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

@@ -2,45 +2,87 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { Product } from '@/types/product';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { Product, ProductCategory } from '@/types/product';
 import { filterRetailStoreProducts } from '@/lib/products/retail-store';
+import {
+  parseCategoryFilterParam,
+  productMatchesCategoryFilter,
+  type CategoryFilterId,
+} from '@/lib/products/product-category-filter';
+import { getProductPromoBadge } from '@/lib/products/product-promo-badge';
 import { useCart } from '@/contexts/CartContext';
 import { useFlyToCart } from '@/contexts/FlyToCartContext';
 import PartnersLogos from '@/components/PartnersLogos';
 import ProductImageSlider from '@/components/ProductImageSlider';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  kavanoz: 'Kavanoz Ürünler',
-  dondurulmus: 'Dondurulmuş',
-  atistirmalik: 'Atıştırmalıklar',
-};
-
-const CATEGORY_STYLES: Record<string, { gradient: string; iconColor: string }> = {
-  kavanoz: { gradient: 'from-amber-200 to-amber-300', iconColor: 'text-amber-700' },
-  dondurulmus: { gradient: 'from-blue-200 to-blue-300', iconColor: 'text-blue-700' },
-  atistirmalik: { gradient: 'from-orange-200 to-orange-300', iconColor: 'text-orange-700' },
-  default: { gradient: 'from-green-200 to-green-300', iconColor: 'text-green-700' },
+const CATEGORY_STYLES = {
+  gradient: 'from-green-200 to-green-300',
+  iconColor: 'text-green-700',
 };
 
 export default function UrunlerimizClient() {
   const { addItem } = useCart();
   const { triggerAnimation } = useFlyToCart();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const categorySlugSet = useMemo(
+    () => new Set(categories.map((category) => category.slug)),
+    [categories]
+  );
+
+  const activeCategory: CategoryFilterId = useMemo(() => {
+    const parsed = parseCategoryFilterParam(searchParams.get('kategori'));
+    if (parsed === 'all') return 'all';
+    return categorySlugSet.has(parsed) ? parsed : 'all';
+  }, [searchParams, categorySlugSet]);
+
+  const setActiveCategory = (id: CategoryFilterId) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id === 'all') {
+      params.delete('kategori');
+    } else {
+      params.set('kategori', id);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadCatalog = async () => {
       try {
-        const response = await fetch('/api/products', { cache: 'no-store' });
-        if (!response.ok) {
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch('/api/products', { cache: 'no-store' }),
+          fetch('/api/categories', { cache: 'no-store' }),
+        ]);
+
+        if (!productsRes.ok) {
           throw new Error('Ürünler yüklenemedi');
         }
-        const data = await response.json();
-        const raw = Array.isArray(data?.products) ? (data.products as Product[]) : [];
+
+        const productsData = await productsRes.json();
+        const raw = Array.isArray(productsData?.products)
+          ? (productsData.products as Product[])
+          : [];
         setProducts(filterRetailStoreProducts(raw));
+
+        if (categoriesRes.ok) {
+          const categoriesData = await categoriesRes.json();
+          const list = Array.isArray(categoriesData?.categories)
+            ? (categoriesData.categories as ProductCategory[])
+            : [];
+          setCategories(list);
+        } else {
+          console.warn('Kategoriler yüklenemedi; filtre çubuğu gösterilmeyecek.');
+          setCategories([]);
+        }
       } catch (err) {
         console.error('Ürünleri çekerken hata:', err);
         setError('Ürünleri alırken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.');
@@ -49,19 +91,19 @@ export default function UrunlerimizClient() {
       }
     };
 
-    fetchProducts();
+    loadCatalog();
   }, []);
 
-  const categories = useMemo(
-    () => [
-      { id: 'all', label: 'Tümü' },
-    ],
-    []
+  const filterTabs = useMemo(
+    () => [{ slug: 'all', name: 'Tüm Ürünler' }, ...categories.map((c) => ({ slug: c.slug, name: c.name }))],
+    [categories]
   );
 
-  const filteredProducts = products;
+  const filteredProducts = useMemo(
+    () => products.filter((product) => productMatchesCategoryFilter(product, activeCategory)),
+    [products, activeCategory]
+  );
 
-  const getProductStyle = () => CATEGORY_STYLES.default;
   const formatPrice = (price: number) =>
     price.toLocaleString('tr-TR', {
       minimumFractionDigits: 2,
@@ -80,7 +122,6 @@ export default function UrunlerimizClient() {
               Ev Yapımı Kavanoz Ürünler
             </p>
 
-            {/* Güven Satırı - Trendyol */}
             <a
               href="https://www.trendyol.com/magaza/tek-lezzet-m-332261?channelId=1&sst=0&sk=1"
               target="_blank"
@@ -106,36 +147,43 @@ export default function UrunlerimizClient() {
               <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
                 🚚 1–3 günde kargo
               </span>
-          
+
               <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm">
                 🇹🇷 Yerli üretim
               </span>
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* Partners Logos Section */}
       <PartnersLogos />
 
-      {/* Category Filter Bar */}
-      <section className="py-8 px-4 bg-white border-b border-gray-100">
+      <section className="py-6 px-4 bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm/50">
         <div className="container mx-auto">
-          <div className="flex flex-wrap justify-center gap-4">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`px-6 py-3 rounded-full font-semibold transition-all ${
-                  activeCategory === category.id
-                    ? 'bg-green-700 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category.label}
-              </button>
-            ))}
+          <div
+            className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:justify-center md:overflow-visible scrollbar-thin -mx-2 px-2 md:mx-0 md:px-0"
+            role="tablist"
+            aria-label="Ürün kategorileri"
+          >
+            {filterTabs.map((category) => {
+              const selected = activeCategory === category.slug;
+              return (
+                <button
+                  key={category.slug}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setActiveCategory(category.slug)}
+                  className={`shrink-0 whitespace-nowrap px-4 py-2.5 md:px-6 md:py-3 rounded-full text-sm md:text-base font-semibold transition-all ${
+                    selected
+                      ? 'bg-green-700 text-white shadow-md ring-2 ring-green-700/30 ring-offset-1'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -162,10 +210,11 @@ export default function UrunlerimizClient() {
 
           {!loading && !error && filteredProducts.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredProducts.map((product, index) => {
-                const style = getProductStyle();
+              {filteredProducts.map((product) => {
+                const promoBadge = getProductPromoBadge(product);
                 const hasPrice = typeof product.price === 'number';
-                const compareAt = typeof product.compare_at_price === 'number' ? product.compare_at_price : null;
+                const compareAt =
+                  typeof product.compare_at_price === 'number' ? product.compare_at_price : null;
                 const hasDiscount = hasPrice && compareAt != null && compareAt > product.price;
                 return (
                   <div
@@ -174,16 +223,22 @@ export default function UrunlerimizClient() {
                       hasDiscount ? 'border-2 border-green-700 hover:shadow-lg' : ''
                     }`}
                   >
-                    {/* Clickable Product Content */}
                     <Link
                       href={`/urunlerimiz/${product.slug}`}
                       className="flex flex-col flex-1 cursor-pointer"
                     >
-                      {/* Product Image */}
-                      <div className={`aspect-square bg-gradient-to-br ${style.gradient} flex items-center justify-center relative overflow-hidden`}>
-                        {hasDiscount && (
-                          <span className="absolute left-3 top-3 z-10 rounded-full bg-green-700 text-white text-sm font-extrabold px-3 py-1 shadow-md">
-                            Kampanyalı
+                      <div
+                        className={`aspect-square bg-gradient-to-br ${CATEGORY_STYLES.gradient} flex items-center justify-center relative overflow-hidden`}
+                      >
+                        {promoBadge && (
+                          <span
+                            className={`absolute left-3 top-3 z-10 rounded-full text-white text-xs md:text-sm font-extrabold px-3 py-1 shadow-md ${
+                              promoBadge.label === '4 AL 3 ÖDE'
+                                ? 'bg-amber-600'
+                                : 'bg-green-700'
+                            }`}
+                          >
+                            {promoBadge.label}
                           </span>
                         )}
                         {product.image_url || product.image_url_2 ? (
@@ -194,13 +249,22 @@ export default function UrunlerimizClient() {
                             className="h-full w-full"
                           />
                         ) : (
-                          <svg className={`w-24 h-24 ${style.iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <svg
+                            className={`w-24 h-24 ${CATEGORY_STYLES.iconColor}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
                           </svg>
                         )}
                       </div>
 
-                      {/* Product Info */}
                       <div className="p-4 flex-1">
                         <h3 className="text-lg font-semibold mb-1.5 text-gray-900">
                           {product.name}
@@ -215,7 +279,10 @@ export default function UrunlerimizClient() {
                             {hasDiscount ? (
                               <div className="flex items-baseline gap-3">
                                 <span className="relative inline-block text-red-600 text-base md:text-lg font-semibold">
-                                  <span className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
+                                  <span
+                                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                                    aria-hidden
+                                  >
                                     <span className="absolute top-1/2 h-[3px] w-[50%] -translate-y-1/2 bg-red-600 rotate-45 rounded-full mx-auto" />
                                     <span className="absolute top-1/2 h-[3px] w-[50%] -translate-y-1/2 bg-red-600 -rotate-45 rounded-full mx-auto" />
                                   </span>
@@ -243,7 +310,6 @@ export default function UrunlerimizClient() {
                       </div>
                     </Link>
 
-                    {/* Add to Cart Button - Outside Link */}
                     <div className="px-4 pb-4">
                       <button
                         onClick={(e) => {
@@ -277,4 +343,3 @@ export default function UrunlerimizClient() {
     </div>
   );
 }
-

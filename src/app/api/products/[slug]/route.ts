@@ -26,7 +26,17 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select(
+        `
+        *,
+        category:categories (
+          id,
+          slug,
+          name,
+          sort_order
+        )
+      `
+      )
       .eq("slug", slug)
       .eq("is_active", true)
       .eq("sales_channel", RETAIL_SALES_CHANNEL)

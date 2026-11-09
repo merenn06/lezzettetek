@@ -11,6 +11,7 @@ import ProductImageSlider from '@/components/ProductImageSlider';
 import { META_EVENT_NAMES } from '@/lib/meta/constants';
 import { buildMetaEventId } from '@/lib/meta/eventId';
 import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
+import { getProductPromoBadge } from '@/lib/products/product-promo-badge';
 
 const CATEGORY_STYLES: Record<string, { badge: string; gradient: string }> = {
   kavanoz: { badge: 'bg-green-100 text-green-700', gradient: 'from-green-200 to-green-300' },
@@ -97,6 +98,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const hasPrice = typeof product.price === 'number';
   const compareAt = typeof product.compare_at_price === 'number' ? product.compare_at_price : null;
   const hasDiscount = hasPrice && compareAt != null && compareAt > product.price;
+  const promoBadge = getProductPromoBadge(product);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
@@ -159,9 +161,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         </span>
                         {formatPrice(compareAt!)} ₺
                       </span>
-                      <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 text-[11px] font-semibold px-2 py-0.5">
-                        Kampanyalı
-                      </span>
+                      {promoBadge && (
+                        <span
+                          className={`inline-flex items-center rounded-full text-[11px] font-semibold px-2 py-0.5 ${
+                            promoBadge.label === '4 AL 3 ÖDE'
+                              ? 'bg-amber-100 text-amber-900'
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                        >
+                          {promoBadge.label}
+                        </span>
+                      )}
                     </div>
                   )}
                   <span className="text-4xl font-bold text-green-700 block">

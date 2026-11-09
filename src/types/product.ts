@@ -1,3 +1,10 @@
+export type ProductCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -11,16 +18,12 @@ export type Product = {
   unit_price_text?: string | null;
   content?: string | null;
   origin?: string | null;
-  // Optional fields that may exist in Supabase but are not mandatory for UI
   created_at?: string;
   updated_at?: string;
-  // Soft delete / archive flag (Supabase products.is_active)
   is_active?: boolean;
-  /**
-   * Toptan satış ürünlerini diğerlerinden ayırt etmek için opsiyonel bayrak.
-   * Sadece wholesale akışında true olarak set edilir.
-   */
   is_wholesale?: boolean;
   sales_channel?: 'retail' | 'campaign_995';
+  category_id?: string | null;
+  /** Supabase join: categories */
+  category?: ProductCategory | null;
 };
-

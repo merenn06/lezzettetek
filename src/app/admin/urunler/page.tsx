@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Product } from '@/types/product';
+import { Product, ProductCategory } from '@/types/product';
 
 // Slugify function
 function slugify(text: string): string {
@@ -18,6 +18,7 @@ function slugify(text: string): string {
 
 export default function AdminUrunlerPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -35,13 +36,27 @@ export default function AdminUrunlerPage() {
     content: '',
     unitPriceText: '',
     origin: '',
+    categoryId: '',
     imageFile: null as File | null,
     imageFile2: null as File | null,
   });
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories', { cache: 'no-store' });
+      const data = await response.json();
+      if (data.success && Array.isArray(data.categories)) {
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Kategoriler yüklenirken hata:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -207,6 +222,7 @@ export default function AdminUrunlerPage() {
         content: formData.content.trim() || null,
         unit_price_text: formData.unitPriceText.trim() || null,
         origin: formData.origin.trim() || null,
+        category_id: formData.categoryId.trim() || null,
         image_url: imageUrl,
         image_url_2: imageUrl2,
       };
@@ -267,6 +283,7 @@ export default function AdminUrunlerPage() {
       content: product.content || '',
       unitPriceText: product.unit_price_text || '',
       origin: product.origin || '',
+      categoryId: product.category_id || product.category?.id || '',
       imageFile: null,
       imageFile2: null,
     });
@@ -310,6 +327,7 @@ export default function AdminUrunlerPage() {
       content: '',
       unitPriceText: '',
       origin: '',
+      categoryId: '',
       imageFile: null,
       imageFile2: null,
     });
@@ -444,6 +462,29 @@ export default function AdminUrunlerPage() {
                   placeholder="Örn: İzmir Urla"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="categoryId"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Vitrin kategorisi
+                </label>
+                <select
+                  id="categoryId"
+                  name="categoryId"
+                  value={formData.categoryId}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Kategori seçilmedi</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

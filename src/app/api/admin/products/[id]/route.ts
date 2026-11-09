@@ -85,6 +85,7 @@ export async function PUT(
       unit_price_text,
       compare_at_price,
       origin,
+      category_id,
     } = body;
 
     // Validation
@@ -110,22 +111,31 @@ export async function PUT(
       );
     }
 
+    const updateRow: Record<string, unknown> = {
+      name,
+      slug,
+      price,
+      compare_at_price: typeof compare_at_price === "number" ? compare_at_price : null,
+      stock,
+      description,
+      content: content || null,
+      image_url: image_url || null,
+      image_url_2: image_url_2 || null,
+      unit_price_text: unit_price_text?.trim() || null,
+      origin: origin?.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if ("category_id" in body) {
+      updateRow.category_id =
+        typeof category_id === "string" && category_id.trim()
+          ? category_id.trim()
+          : null;
+    }
+
     const { data, error } = await supabase
       .from("products")
-      .update({
-        name,
-        slug,
-        price,
-        compare_at_price: typeof compare_at_price === "number" ? compare_at_price : null,
-        stock,
-        description,
-        content: content || null,
-        image_url: image_url || null,
-        image_url_2: image_url_2 || null,
-        unit_price_text: unit_price_text?.trim() || null,
-        origin: origin?.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateRow)
       .eq("id", id)
       .select()
       .single();
