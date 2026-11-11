@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import MetaPurchaseTracker, {
-  type MetaPurchaseTrackerItem,
-} from '@/components/analytics/MetaPurchaseTracker';
+import MetaPurchaseTracker from '@/components/analytics/MetaPurchaseTracker';
+import GoogleAnalyticsPurchaseTracker from '@/components/analytics/GoogleAnalyticsPurchaseTracker';
+import {
+  parseOrderTotalPrice,
+  shouldSendBrowserPurchaseEvent,
+} from '@/lib/analytics/order-purchase-eligibility';
 
 type ThankYouPageProps = {
   searchParams: Promise<{ orderId?: string }>;
@@ -21,39 +24,15 @@ type OrderItemPurchaseRow = {
   product_id: string;
   quantity: number;
   unit_price: number | null;
+  product?: { name?: string | null } | null;
 };
 
-function parseTotalPrice(value: number | string | null | undefined): number {
-  if (typeof value === 'number' && !Number.isNaN(value)) {
-    return value;
-  }
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value.replace(',', '.'));
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
-}
-
-function shouldTrackPurchasePixel(order: OrderPurchaseRow | null): boolean {
-  if (!order) return false;
-
-  const status = order.status ?? '';
-  if (status === 'iptal' || status === 'payment_failed') {
-    return false;
-  }
-
-  const paymentMethod = order.payment_method ?? '';
-
-  if (paymentMethod === 'iyzico') {
-    return order.payment_status === 'paid';
-  }
-
-  if (paymentMethod === 'kapida' || paymentMethod === 'cod') {
-    return true;
-  }
-
-  return false;
-}
+type PurchaseLineItem = {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+};
 
 async function getOrderForPurchase(
   orderId: string
@@ -75,12 +54,21 @@ async function getOrderForPurchase(
 
 async function getOrderItemsForPurchase(
   orderId: string
-): Promise<MetaPurchaseTrackerItem[]> {
+): Promise<PurchaseLineItem[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
     .from('order_items')
-    .select('product_id, quantity, unit_price')
+    .select(
+      `
+      product_id,
+      quantity,
+      unit_price,
+      product:products (
+        name
+      )
+    `
+    )
     .eq('order_id', orderId);
 
   if (error || !data) {
@@ -91,6 +79,7 @@ async function getOrderItemsForPurchase(
     .filter((item) => item.product_id && Number(item.quantity) > 0)
     .map((item) => ({
       productId: String(item.product_id),
+      productName: item.product?.name?.trim() || String(item.product_id),
       quantity: Number(item.quantity),
       unitPrice: Number(item.unit_price ?? 0),
     }));
@@ -107,17 +96,28 @@ export default async function TesekkurlerPage({
   if (orderId) {
     const order = await getOrderForPurchase(orderId);
 
-    if (shouldTrackPurchasePixel(order)) {
+    if (shouldSendBrowserPurchaseEvent(order)) {
       const items = await getOrderItemsForPurchase(orderId);
-      const totalPrice = parseTotalPrice(order?.total_price);
+      const totalPrice = parseOrderTotalPrice(order?.total_price);
 
       if (items.length > 0 && totalPrice > 0) {
         purchaseTracker = (
-          <MetaPurchaseTracker
-            orderId={orderId}
-            totalPrice={totalPrice}
-            items={items}
-          />
+          <>
+            <MetaPurchaseTracker
+              orderId={orderId}
+              totalPrice={totalPrice}
+              items={items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+              }))}
+            />
+            <GoogleAnalyticsPurchaseTracker
+              orderId={orderId}
+              totalPrice={totalPrice}
+              items={items}
+            />
+          </>
         );
       }
     }
