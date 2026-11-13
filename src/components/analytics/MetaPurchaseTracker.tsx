@@ -66,6 +66,7 @@ export default function MetaPurchaseTracker({
         content_type: "product",
         num_items: numItems,
         contents,
+        order_id: orderId,
       },
       eventId
     );

@@ -1,5 +1,6 @@
 /**
  * Meta Pixel & Conversions API shared constants.
+ * Enginar Bahçesi veri seti — tarayıcı ve CAPI aynı Pixel ID kullanır (env).
  * Safe to import from both client and server code.
  */
 
@@ -16,6 +17,49 @@ export type MetaEventName = (typeof META_EVENT_NAMES)[keyof typeof META_EVENT_NA
 export const META_DEFAULT_API_VERSION = "v21.0";
 export const META_GRAPH_API_BASE = "https://graph.facebook.com";
 
+/** Eski Lezzette Tek pixel — env'de kalırsa olaylar bilinçli olarak devre dışı bırakılır. */
+export const DEPRECATED_LEZZETTEK_META_PIXEL_IDS = new Set([
+  "1584232206584357",
+]);
+
+/** Enginar Bahçesi (yeni veri seti) — yalnızca dokümantasyon / .env.example referansı. */
+export const ENGINAR_BAHCE_META_PIXEL_ID = "934965809358416";
+
+let deprecatedPixelWarned = false;
+
+function warnDeprecatedPixelId(source: string, id: string): void {
+  if (typeof window !== "undefined") return;
+  if (deprecatedPixelWarned) return;
+  deprecatedPixelWarned = true;
+  console.warn(
+    `[meta] ${source} contains deprecated Lezzette Tek pixel (${id}). ` +
+      `Use Enginar Bahçesi pixel ${ENGINAR_BAHCE_META_PIXEL_ID} in env instead.`
+  );
+}
+
+function resolvePixelId(
+  primary: string | undefined,
+  fallback?: string | undefined,
+  sourceLabel = "Pixel ID env"
+): string | null {
+  const candidates = [primary?.trim(), fallback?.trim()].filter(Boolean) as string[];
+
+  let sawDeprecated = false;
+  for (const id of candidates) {
+    if (DEPRECATED_LEZZETTEK_META_PIXEL_IDS.has(id)) {
+      sawDeprecated = true;
+      warnDeprecatedPixelId(sourceLabel, id);
+      continue;
+    }
+    return id;
+  }
+
+  if (sawDeprecated && !candidates.length) {
+    return null;
+  }
+  return null;
+}
+
 /** Returns true when Meta Pixel should run in the browser. */
 export function isMetaPixelEnabled(): boolean {
   if (process.env.META_PIXEL_ENABLED === "false") return false;
@@ -25,28 +69,39 @@ export function isMetaPixelEnabled(): boolean {
   ) {
     return false;
   }
-  return Boolean(process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim());
+  return Boolean(getPublicPixelId());
 }
 
-/** Returns true when server-side CAPI calls should be sent. */
+/** Returns true when server-side CAPI calls should be sent (token zorunlu). */
 export function isMetaCapiEnabled(): boolean {
   if (process.env.META_CAPI_ENABLED === "false") return false;
   if (process.env.NODE_ENV === "development" && process.env.META_CAPI_ENABLED !== "true") {
     return false;
   }
   return Boolean(
-    process.env.META_PIXEL_ID?.trim() && process.env.META_CAPI_ACCESS_TOKEN?.trim()
+    getServerPixelId() && process.env.META_CAPI_ACCESS_TOKEN?.trim()
   );
 }
 
+/** Tarayıcı — yalnızca NEXT_PUBLIC_META_PIXEL_ID */
 export function getPublicPixelId(): string | null {
-  const id = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
-  return id || null;
+  return resolvePixelId(
+    process.env.NEXT_PUBLIC_META_PIXEL_ID,
+    undefined,
+    "NEXT_PUBLIC_META_PIXEL_ID"
+  );
 }
 
+/**
+ * CAPI — META_PIXEL_ID, yoksa NEXT_PUBLIC_META_PIXEL_ID (aynı veri seti olmalı).
+ * Eski pixel ID env'deyse null döner; graph.facebook.com çağrısı yapılmaz.
+ */
 export function getServerPixelId(): string | null {
-  const id = process.env.META_PIXEL_ID?.trim();
-  return id || null;
+  return resolvePixelId(
+    process.env.META_PIXEL_ID,
+    process.env.NEXT_PUBLIC_META_PIXEL_ID,
+    "META_PIXEL_ID / NEXT_PUBLIC_META_PIXEL_ID"
+  );
 }
 
 export function getMetaApiVersion(): string {

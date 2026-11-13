@@ -4,11 +4,14 @@ import {
   isMetaPixelEnabled,
   type MetaEventName,
 } from "./constants";
+import { hasMetaAdvertisingConsent } from "./consent";
 
 declare global {
   interface Window {
     fbq?: MetaFbq;
     _fbq?: MetaFbq;
+    /** Hangi pixel ID ile init edildiği (çift init / eski+yeni ID uyarısı). */
+    __tekLezzetMetaPixelInitId?: string;
   }
 }
 
@@ -51,6 +54,7 @@ export function isPixelReady(): boolean {
 export function shouldRunMetaPixel(pathname?: string): boolean {
   if (!isMetaPixelEnabled()) return false;
   if (pathname && isAdminPath(pathname)) return false;
+  if (typeof window !== "undefined" && !hasMetaAdvertisingConsent()) return false;
   return Boolean(getPublicPixelId());
 }
 

@@ -1,19 +1,18 @@
 "use client";
 
 import Script from "next/script";
+import { usePathname } from "next/navigation";
 import { getPublicPixelId, isAdminPath, isMetaPixelEnabled } from "@/lib/meta/constants";
 
-type MetaPixelProps = {
-  pathname?: string;
-};
-
 /**
- * Loads Meta Pixel base script once.
- * Mount from root layout; skips admin routes.
+ * Meta Pixel base script — admin rotalarında yüklenmez.
+ * PageView: MetaPageViewTracker (App Router geçişleri + ilk yükleme).
  */
-export default function MetaPixel({ pathname = "" }: MetaPixelProps) {
+export default function MetaPixel() {
+  const pathname = usePathname() ?? "";
   const pixelId = getPublicPixelId();
-  const enabled = isMetaPixelEnabled() && Boolean(pixelId) && !isAdminPath(pathname);
+  const enabled =
+    isMetaPixelEnabled() && Boolean(pixelId) && !isAdminPath(pathname);
 
   if (!enabled || !pixelId) {
     return null;
@@ -31,7 +30,12 @@ export default function MetaPixel({ pathname = "" }: MetaPixelProps) {
           t.src=v;s=b.getElementsByTagName(e)[0];
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${pixelId}');
+          if (!window.__tekLezzetMetaPixelInitId) {
+            fbq('init', '${pixelId}');
+            window.__tekLezzetMetaPixelInitId = '${pixelId}';
+          } else if (window.__tekLezzetMetaPixelInitId !== '${pixelId}') {
+            console.warn('[meta] Pixel already initialized with a different ID; reload the page after updating env.');
+          }
           window.dispatchEvent(new CustomEvent('meta-pixel-ready'));
         `}
       </Script>
