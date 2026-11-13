@@ -152,6 +152,55 @@ export function splitCustomerName(fullName: string | null | undefined): {
   };
 }
 
+type MetaGraphEventsResponseSummary = {
+  events_received?: number;
+  messages?: unknown;
+};
+
+/** Yalnızca teşhis için güvenli alanlar — PII / token içermez. */
+function summarizeMetaGraphEventsResponse(
+  responseJson: unknown
+): MetaGraphEventsResponseSummary {
+  if (!responseJson || typeof responseJson !== "object") {
+    return {};
+  }
+  const record = responseJson as Record<string, unknown>;
+  const events_received =
+    typeof record.events_received === "number" ? record.events_received : undefined;
+  const messages = record.messages;
+  return { events_received, messages };
+}
+
+function logMetaCapiSuccess(
+  input: Pick<SendMetaCapiEventInput, "eventName" | "eventId">,
+  httpStatus: number,
+  summary: MetaGraphEventsResponseSummary
+): void {
+  console.info("[meta-capi] Event delivered to Meta", {
+    eventName: input.eventName,
+    eventId: input.eventId,
+    httpStatus,
+    events_received: summary.events_received,
+    messages: summary.messages,
+  });
+}
+
+function logMetaCapiFailure(
+  input: Pick<SendMetaCapiEventInput, "eventName" | "eventId">,
+  httpStatus: number | null,
+  summary: MetaGraphEventsResponseSummary,
+  error: string
+): void {
+  console.error("[meta-capi] Event delivery failed", {
+    eventName: input.eventName,
+    eventId: input.eventId,
+    httpStatus,
+    events_received: summary.events_received,
+    messages: summary.messages,
+    error,
+  });
+}
+
 /**
  * Sends a single event to Meta Conversions API (server-side only).
  * Returns `{ ok: true, skipped: true }` when disabled via env.
@@ -162,6 +211,10 @@ export async function sendMetaCapiEvent(
   assertServerSide();
 
   if (!isMetaCapiEnabled()) {
+    console.info("[meta-capi] Skipped (disabled or missing credentials)", {
+      eventName: input.eventName,
+      eventId: input.eventId,
+    });
     return {
       ok: true,
       skipped: true,
@@ -173,6 +226,12 @@ export async function sendMetaCapiEvent(
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN?.trim();
 
   if (!pixelId || !accessToken) {
+    console.error("[meta-capi] Event delivery failed", {
+      eventName: input.eventName,
+      eventId: input.eventId,
+      httpStatus: null,
+      error: "Missing META_PIXEL_ID or META_CAPI_ACCESS_TOKEN",
+    });
     return {
       ok: false,
       error: "Missing META_PIXEL_ID or META_CAPI_ACCESS_TOKEN",
@@ -217,22 +276,30 @@ export async function sendMetaCapiEvent(
 
     const responseJson = await response.json().catch(() => null);
 
+    const summary = summarizeMetaGraphEventsResponse(responseJson);
+
     if (!response.ok) {
+      const error = `Meta CAPI request failed (${response.status})`;
+      logMetaCapiFailure(input, response.status, summary, error);
       return {
         ok: false,
-        error: `Meta CAPI request failed (${response.status})`,
+        error,
         response: responseJson,
       };
     }
+
+    logMetaCapiSuccess(input, response.status, summary);
 
     return {
       ok: true,
       response: responseJson,
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Meta CAPI error";
+    logMetaCapiFailure(input, null, {}, message);
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Unknown Meta CAPI error",
+      error: message,
     };
   }
 }
