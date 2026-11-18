@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Product } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
@@ -8,9 +7,7 @@ import { useFlyToCart } from '@/contexts/FlyToCartContext';
 import { formatProductContentReact } from '@/lib/formatProductContentReact';
 import ProductReviews from '@/components/ProductReviews';
 import ProductImageSlider from '@/components/ProductImageSlider';
-import { META_EVENT_NAMES } from '@/lib/meta/constants';
-import { buildMetaEventId } from '@/lib/meta/eventId';
-import { trackBrowserEvent } from '@/lib/meta/track-browser-event';
+import { useMetaViewContent } from '@/hooks/useMetaViewContent';
 import { getProductPromoBadge } from '@/lib/products/product-promo-badge';
 
 const CATEGORY_STYLES: Record<string, { badge: string; gradient: string }> = {
@@ -27,38 +24,16 @@ type ProductDetailClientProps = {
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { addItem } = useCart();
   const { triggerAnimation } = useFlyToCart();
-  const trackedViewContentProductId = useRef<string | null>(null);
 
-  useEffect(() => {
-    const productId = product?.id;
-    const productName = product?.name;
-    const productPrice = product?.price;
-
-    if (!productId || !productName || typeof productPrice !== 'number') {
-      return;
-    }
-
-    if (trackedViewContentProductId.current === productId) {
-      return;
-    }
-
-    const eventId = buildMetaEventId(META_EVENT_NAMES.VIEW_CONTENT, productId);
-    const tracked = trackBrowserEvent(
-      META_EVENT_NAMES.VIEW_CONTENT,
-      eventId,
-      {
-        content_ids: [productId],
-        content_name: productName,
-        content_type: 'product',
-        value: productPrice,
-        currency: 'TRY',
-      }
-    );
-
-    if (tracked) {
-      trackedViewContentProductId.current = productId;
-    }
-  }, [product.id, product.name, product.price]);
+  useMetaViewContent(
+    product?.id && product?.name && typeof product.price === 'number'
+      ? {
+          productId: product.id,
+          productName: product.name,
+          price: product.price,
+        }
+      : null
+  );
 
   const getCategoryBadgeStyle = (category?: string | null) => {
     if (!category) return CATEGORY_STYLES.default.badge;

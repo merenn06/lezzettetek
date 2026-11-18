@@ -30,6 +30,20 @@ export function buildPurchaseEventId(orderId: string): string {
   return buildMetaEventId(META_EVENT_NAMES.PURCHASE, orderId);
 }
 
+/**
+ * ViewContent: benzersiz görüntüleme oturumu + ürün.
+ * Aynı mount içinde Pixel ve CAPI aynı event_id kullanır; yeni ziyarette yeni viewInstanceKey.
+ */
+export function buildViewContentEventId(
+  productId: string,
+  viewInstanceKey: string
+): string {
+  return buildMetaEventId(
+    META_EVENT_NAMES.VIEW_CONTENT,
+    `${productId}_${viewInstanceKey}`
+  );
+}
+
 /** PageView dedup is optional; bucket by minute to avoid spam on rapid navigations. */
 export function buildPageViewEventId(pathname: string, timestampMs = Date.now()): string {
   const minuteBucket = Math.floor(timestampMs / 60_000);

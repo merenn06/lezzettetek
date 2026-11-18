@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
+import { useMetaViewContent } from '@/hooks/useMetaViewContent';
 import { CAMPAIGN_995_PRICE } from '@/lib/campaign995/packages';
 import type { Campaign995PackageView } from '@/types/campaign995-package';
 
@@ -12,6 +13,17 @@ type Campaign995DetailClientProps = {
 
 export default function Campaign995DetailClient({ pkg }: Campaign995DetailClientProps) {
   const { addItem } = useCart();
+  const cartProduct = pkg.cartProduct;
+
+  useMetaViewContent(
+    cartProduct?.id && cartProduct?.name && typeof cartProduct.price === 'number'
+      ? {
+          productId: cartProduct.id,
+          productName: cartProduct.name,
+          price: cartProduct.price,
+        }
+      : null
+  );
 
   const imageSrc = pkg.image || pkg.cartProduct.image_url || null;
   const inStock = pkg.cartProduct.stock > 0;
