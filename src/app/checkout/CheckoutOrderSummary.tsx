@@ -103,7 +103,7 @@ export default function CheckoutOrderSummary({
             <span className="font-semibold">- {formatPrice(discountAmount)} ₺</span>
           </div>
         )}
-        {isCodPayment && (
+        {isCodPayment && codFee > 0 && (
           <div className="flex justify-between text-gray-700">
             <span>Kapıda Ödeme Bedeli:</span>
             <span className="font-semibold">{formatPrice(codFee)} ₺</span>

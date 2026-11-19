@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { COD_FEE, calculateShipping } from '@/lib/shipping';
+import { calculateCodFee, calculateShipping } from '@/lib/shipping';
 import {
   COUPON_CODE,
   calculateCouponDiscount,
@@ -101,7 +101,7 @@ export default function CheckoutPage() {
   const subtotal = getTotalPrice();
   const shipping = calculateShipping(subtotal);
   const isCodPayment = formData.paymentMethod === 'kapida-odeme';
-  const codFee = isCodPayment ? COD_FEE : 0;
+  const codFee = calculateCodFee(isCodPayment);
   const baseTotal = subtotal + shipping;
   const couponResult = calculateCouponDiscount(baseTotal, appliedCoupon);
   const discountAmount = couponResult.discountAmount;
@@ -904,9 +904,6 @@ export default function CheckoutPage() {
                       <span className="font-medium text-gray-900">Kapıda Ödeme</span>
                       <p className="text-sm text-gray-500 mt-1">
                         Ödemenizi teslimat sırasında kargo görevlisine nakit veya kredi kartı ile yapabilirsiniz.
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Kapıda ödeme hizmet bedeli: {formatPrice(COD_FEE)} ₺
                       </p>
                       {formData.paymentMethod === 'kapida-odeme' && (
                         <div className="mt-3 space-y-2">

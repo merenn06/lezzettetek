@@ -3,7 +3,8 @@
  */
 export const BASE_SHIPPING_FEE = 150.0;
 export const FREE_SHIPPING_THRESHOLD = 750.0;
-export const COD_FEE = 50.0;
+/** Kapıda ödeme hizmet bedeli (TL). Ürün + kargo dışında ek ücret yok. */
+export const COD_FEE = 0;
 
 /**
  * Calculate shipping fee based on subtotal
