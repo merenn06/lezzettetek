@@ -4,6 +4,7 @@ import {
   sendBrowserEventCapi,
 } from "@/lib/meta/browser-event-capi";
 import { isAdminPath } from "@/lib/meta/constants";
+import { isServerMarketingConsentGranted } from "@/lib/meta/consent-server";
 import { getMetaCookiesFromRequest } from "@/lib/meta/server-cookies";
 import type { MetaCapiCustomData } from "@/lib/meta/capi";
 
@@ -166,6 +167,10 @@ export async function POST(request: Request) {
 
     if (shouldSkipAdminTracking(body.pathname, body.eventSourceUrl)) {
       return NextResponse.json({ ok: true, skipped: true, reason: "admin_path" });
+    }
+
+    if (!isServerMarketingConsentGranted(request)) {
+      return NextResponse.json({ ok: true, skipped: true, reason: "consent_denied" });
     }
 
     let eventSourceUrl: string | undefined;

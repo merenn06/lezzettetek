@@ -9,7 +9,9 @@ import {
   verifyTurnstileToken,
 } from "@/lib/turnstile/verify";
 import { sendOrderConfirmationEmail } from "@/lib/mailer";
-import { sendMetaPurchaseCapi } from "@/lib/meta/purchase";
+import { captureOrderAttributionFromRequest } from "@/lib/meta/order-attribution";
+import { saveOrderAttributionWithTimeout } from "@/lib/meta/order-attribution-db";
+import { sendOrderPurchaseCapi } from "@/lib/meta/send-order-purchase-capi";
 import { supabase } from "@/lib/supabaseClient";
 import { calculateCodFee, calculateShipping } from "@/lib/shipping";
 import {
@@ -34,6 +36,7 @@ type CheckoutRequestBody = {
   invoice_tax_office?: string | null;
   couponCode?: string | null;
   turnstile_token?: string | null;
+  meta_event_source_url?: string | null;
   items: Array<{
     product_id: string;
     product_name: string;
@@ -205,6 +208,28 @@ export async function POST(req: Request) {
 
     const { orderId } = await createOrderWithItems(orderData, mappedItems);
 
+    const clientEventSourceUrl =
+      body && typeof body === "object" && typeof (body as CheckoutRequestBody).meta_event_source_url === "string"
+        ? (body as CheckoutRequestBody).meta_event_source_url
+        : undefined;
+
+    const attribution = captureOrderAttributionFromRequest({
+      request: req,
+      clientEventSourceUrl,
+    });
+
+    try {
+      const saveResult = await saveOrderAttributionWithTimeout(orderId, attribution);
+      if (!saveResult.ok) {
+        console.warn("[orders-api] attribution save incomplete", {
+          orderId,
+          timedOut: saveResult.timedOut === true,
+        });
+      }
+    } catch {
+      console.warn("[orders-api] attribution save threw", { orderId });
+    }
+
     const isCashOnDelivery =
       payment_method === "kapida" || payment_method === "cod";
 
@@ -215,8 +240,8 @@ export async function POST(req: Request) {
         .eq("id", orderId)
         .single();
 
-      await sendMetaPurchaseCapi(
-        {
+      await sendOrderPurchaseCapi({
+        order: {
           id: orderId,
           total_price: createdOrder?.total_price ?? totalPrice,
           customer_name,
@@ -225,20 +250,14 @@ export async function POST(req: Request) {
           city,
           district,
         },
-        mappedItems.map((item) => ({
+        items: mappedItems.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
         })),
-        {
-          eventSourceUrl: req.headers.get("referer") || undefined,
-          clientIpAddress:
-            req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-            req.headers.get("x-real-ip") ||
-            undefined,
-          clientUserAgent: req.headers.get("user-agent") || undefined,
-        }
-      );
+        snapshot: attribution,
+        requireDbClaim: false,
+      });
     }
 
     // Send confirmation email if email is provided

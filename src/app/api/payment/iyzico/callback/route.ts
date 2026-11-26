@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
-import { sendMetaPurchaseCapi } from '@/lib/meta/purchase';
+import { sendOrderPurchaseCapi } from '@/lib/meta/send-order-purchase-capi';
 import { retrieveCheckoutForm } from '@/lib/iyzico/checkout';
 import type { IyzicoRetrieveResult } from '@/lib/iyzico/types';
 import { createYurticiShipmentForOrder } from '@/lib/shipping/yurtici';
@@ -199,18 +199,16 @@ export async function POST(req: NextRequest): Promise<Response> {
         .select('product_id, quantity, unit_price')
         .eq('order_id', orderId);
 
-      await sendMetaPurchaseCapi(
-        purchaseOrder ?? { id: orderId },
-        purchaseItems ?? [],
-        {
-          eventSourceUrl: req.url,
-          clientIpAddress:
-            req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-            req.headers.get('x-real-ip') ||
-            undefined,
-          clientUserAgent: req.headers.get('user-agent') || undefined,
-        }
-      );
+      await sendOrderPurchaseCapi({
+        order: purchaseOrder ?? { id: orderId },
+        items: (purchaseItems ?? []).map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+        })),
+        snapshot: null,
+        requireDbClaim: true,
+      });
 
       // Automatically create Yurtiçi shipment after successful payment
       try {

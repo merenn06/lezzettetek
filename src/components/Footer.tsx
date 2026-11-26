@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import CookiePreferencesLink from '@/components/consent/CookiePreferencesLink';
 
 export default function Footer() {
   return (
@@ -186,6 +187,7 @@ Lezzette tek nokta olma yaklaşımımız, tüm üretim anlayışımızın temeli
               >
                 KVKK
               </Link>
+              <CookiePreferencesLink />
             </nav>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -10,6 +11,8 @@ import MiniCart from "@/components/MiniCart";
 import FlyToCartAnimation from "@/components/FlyToCartAnimation";
 import MetaPixel from "@/components/analytics/MetaPixel";
 import MetaPageViewTracker from "@/components/analytics/MetaPageViewTracker";
+import MetaFbclidCapture from "@/components/analytics/MetaFbclidCapture";
+import MarketingConsentBanner from "@/components/consent/MarketingConsentBanner";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -68,6 +71,9 @@ export default function RootLayout({
         <MetaPixel />
         <CartProvider>
           <FlyToCartProvider>
+            <Suspense fallback={null}>
+              <MetaFbclidCapture />
+            </Suspense>
             <MetaPageViewTracker />
             <Header />
             <main className="flex-1">
@@ -76,6 +82,7 @@ export default function RootLayout({
             <Footer />
             <MiniCart />
             <FlyToCartAnimation />
+            <MarketingConsentBanner />
           </FlyToCartProvider>
         </CartProvider>
       </body>

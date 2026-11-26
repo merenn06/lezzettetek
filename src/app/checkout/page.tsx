@@ -327,6 +327,9 @@ export default function CheckoutPage() {
       // ignore logging errors in browser (some environments may block console)
     }
 
+    const metaEventSourceUrl =
+      typeof window !== 'undefined' ? window.location.href : undefined;
+
     // Check if iyzico payment is selected
     if (formData.paymentMethod === 'siteden-odeme') {
       // iyzico payment flow
@@ -348,6 +351,7 @@ export default function CheckoutPage() {
           invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
           couponCode: appliedCoupon,
           turnstile_token: turnstileToken,
+          meta_event_source_url: metaEventSourceUrl,
           items: items.map((item) => ({
             product_id: item.product.id,
             product_name: item.product.name,
@@ -359,6 +363,7 @@ export default function CheckoutPage() {
         // Create order
         const orderResponse = await fetch('/api/orders', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -431,6 +436,7 @@ export default function CheckoutPage() {
       invoice_tax_office: formData.corporateInvoice ? formData.taxOffice.trim() : null,
       couponCode: appliedCoupon,
       turnstile_token: turnstileToken,
+      meta_event_source_url: metaEventSourceUrl,
       items: items.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -452,6 +458,7 @@ export default function CheckoutPage() {
       // POST to API
       const response = await fetch('/api/orders', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

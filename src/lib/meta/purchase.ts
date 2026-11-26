@@ -34,6 +34,8 @@ export type SendMetaPurchaseCapiOptions = {
   eventSourceUrl?: string;
   clientIpAddress?: string;
   clientUserAgent?: string;
+  fbc?: string | null;
+  fbp?: string | null;
 };
 
 function parseTotalPrice(value: number | string | null | undefined): number {
@@ -93,14 +95,14 @@ export async function sendMetaPurchaseCapi(
   order: MetaPurchaseOrderInput,
   items: MetaPurchaseItemInput[],
   options: SendMetaPurchaseCapiOptions = {}
-): Promise<void> {
+): Promise<boolean> {
   try {
     const eventData = buildPurchaseEventData(order, items);
     if (!eventData) {
       console.warn("[meta-purchase] Skipping CAPI Purchase: invalid order/items payload", {
         orderId: order.id,
       });
-      return;
+      return false;
     }
 
     const { sendMetaCapiEvent, splitCustomerName } = await import("./capi");
@@ -130,6 +132,8 @@ export async function sendMetaPurchaseCapi(
         country: "tr",
         clientIpAddress: options.clientIpAddress || null,
         clientUserAgent: options.clientUserAgent || null,
+        fbc: options.fbc ?? null,
+        fbp: options.fbp ?? null,
         externalId: order.id,
       },
       customData,
@@ -141,16 +145,19 @@ export async function sendMetaPurchaseCapi(
         error: result.error,
         response: result.response,
       });
-      return;
+      return false;
     }
 
     if (result.skipped) {
       console.log("[meta-purchase] CAPI Purchase skipped:", result.reason);
     }
+
+    return result.ok;
   } catch (error) {
     console.error("[meta-purchase] Unexpected CAPI Purchase error:", {
       orderId: order.id,
       error,
     });
+    return false;
   }
 }

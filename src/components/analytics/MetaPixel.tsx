@@ -1,8 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { getPublicPixelId, isAdminPath, isMetaPixelEnabled } from "@/lib/meta/constants";
+import {
+  hasMetaAdvertisingConsent,
+  MARKETING_CONSENT_CHANGED_EVENT,
+} from "@/lib/meta/consent";
 
 /**
  * Meta Pixel base script — admin rotalarında yüklenmez.
@@ -11,8 +16,20 @@ import { getPublicPixelId, isAdminPath, isMetaPixelEnabled } from "@/lib/meta/co
 export default function MetaPixel() {
   const pathname = usePathname() ?? "";
   const pixelId = getPublicPixelId();
+  const [consentGranted, setConsentGranted] = useState(false);
+
+  useEffect(() => {
+    setConsentGranted(hasMetaAdvertisingConsent());
+    const onConsentChange = () => setConsentGranted(hasMetaAdvertisingConsent());
+    window.addEventListener(MARKETING_CONSENT_CHANGED_EVENT, onConsentChange);
+    return () => window.removeEventListener(MARKETING_CONSENT_CHANGED_EVENT, onConsentChange);
+  }, []);
+
   const enabled =
-    isMetaPixelEnabled() && Boolean(pixelId) && !isAdminPath(pathname);
+    isMetaPixelEnabled() &&
+    Boolean(pixelId) &&
+    !isAdminPath(pathname) &&
+    consentGranted;
 
   if (!enabled || !pixelId) {
     return null;
