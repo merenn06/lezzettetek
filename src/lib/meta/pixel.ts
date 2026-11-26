@@ -17,6 +17,8 @@ declare global {
 
 export type MetaFbq = {
   (command: "init", pixelId: string): void;
+  (command: "consent", state: "grant" | "revoke"): void;
+  (command: "set", key: string, value: boolean, pixelId?: string): void;
   (command: "track", eventName: MetaEventName, params?: MetaPixelEventParams, options?: MetaPixelTrackOptions): void;
   (command: "trackCustom", eventName: string, params?: MetaPixelEventParams, options?: MetaPixelTrackOptions): void;
   callMethod?: (...args: unknown[]) => void;

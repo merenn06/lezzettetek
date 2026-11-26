@@ -11,7 +11,7 @@ import {
   MARKETING_CONSENT_CHANGED_EVENT,
 } from "@/lib/meta/consent";
 
-const META_PIXEL_READY_EVENT = "meta-pixel-ready";
+import { META_PIXEL_READY_EVENT } from "@/lib/meta/meta-pixel-runtime";
 
 /**
  * Fires Meta PageView on App Router client-side navigations.

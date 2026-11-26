@@ -1,3 +1,8 @@
+import {
+  applyMetaPixelConsentState,
+  syncMetaPixelAfterConsentChange,
+} from "./meta-pixel-runtime";
+
 /**
  * Pazarlama çerezleri / Meta Pixel onayı.
  * Yalnızca açık "granted" seçimi ölçümü açar; denied ve karar verilmemiş (unknown) açmaz.
@@ -74,7 +79,10 @@ export function setMarketingConsent(state: MarketingConsentChoice): void {
   }
   syncMarketingConsentCookie();
   if (state === "denied") {
+    applyMetaPixelConsentState(false);
     clearOptionalAdvertisingCookies();
+  } else {
+    syncMetaPixelAfterConsentChange("granted");
   }
   dispatchConsentChanged(state);
 }

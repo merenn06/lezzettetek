@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { getPublicPixelId, isAdminPath, isMetaPixelEnabled } from "@/lib/meta/constants";
 import {
   hasMetaAdvertisingConsent,
   MARKETING_CONSENT_CHANGED_EVENT,
 } from "@/lib/meta/consent";
+import {
+  applyMetaPixelConsentState,
+  ensureMetaPixelScriptLoaded,
+  initMetaPixelWithConsent,
+} from "@/lib/meta/meta-pixel-runtime";
 
 /**
- * Meta Pixel base script — admin rotalarında yüklenmez.
- * PageView: MetaPageViewTracker (App Router geçişleri + ilk yükleme).
+ * Meta Pixel — script bir kez yüklenir; izin geri çekilince fbq('consent','revoke') ile otomatik olaylar durur.
  */
 export default function MetaPixel() {
   const pathname = usePathname() ?? "";
@@ -25,46 +28,45 @@ export default function MetaPixel() {
     return () => window.removeEventListener(MARKETING_CONSENT_CHANGED_EVENT, onConsentChange);
   }, []);
 
-  const enabled =
-    isMetaPixelEnabled() &&
-    Boolean(pixelId) &&
-    !isAdminPath(pathname) &&
-    consentGranted;
+  const storefrontActive =
+    isMetaPixelEnabled() && Boolean(pixelId) && !isAdminPath(pathname);
 
-  if (!enabled || !pixelId) {
+  useEffect(() => {
+    if (!storefrontActive) return;
+
+    if (!consentGranted) {
+      applyMetaPixelConsentState(false);
+      return;
+    }
+
+    let cancelled = false;
+    void ensureMetaPixelScriptLoaded()
+      .then(() => {
+        if (cancelled || !pixelId) return;
+        initMetaPixelWithConsent(pixelId);
+      })
+      .catch(() => {
+        // ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [consentGranted, pixelId, storefrontActive]);
+
+  if (!storefrontActive || !consentGranted || !pixelId) {
     return null;
   }
 
   return (
-    <>
-      <Script id="meta-pixel-base" strategy="afterInteractive">
-        {`
-          !function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          if (!window.__tekLezzetMetaPixelInitId) {
-            fbq('init', '${pixelId}');
-            window.__tekLezzetMetaPixelInitId = '${pixelId}';
-          } else if (window.__tekLezzetMetaPixelInitId !== '${pixelId}') {
-            console.warn('[meta] Pixel already initialized with a different ID; reload the page after updating env.');
-          }
-          window.dispatchEvent(new CustomEvent('meta-pixel-ready'));
-        `}
-      </Script>
-      <noscript>
-        <img
-          height="1"
-          width="1"
-          style={{ display: "none" }}
-          src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
-          alt=""
-        />
-      </noscript>
-    </>
+    <noscript>
+      <img
+        height="1"
+        width="1"
+        style={{ display: "none" }}
+        src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+        alt=""
+      />
+    </noscript>
   );
 }

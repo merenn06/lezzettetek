@@ -4,7 +4,9 @@ import type { MetaPixelEventParams } from "./pixel";
 import { trackMetaPixelEvent } from "./pixel";
 import { trackBrowserEvent } from "./track-browser-event";
 
-export const META_PIXEL_READY_EVENT = "meta-pixel-ready";
+import { META_PIXEL_READY_EVENT } from "./meta-pixel-runtime";
+
+export { META_PIXEL_READY_EVENT };
 
 const VIEW_CONTENT_RETRY_INTERVAL_MS = 100;
 const VIEW_CONTENT_MAX_RETRY_MS = 10_000;
